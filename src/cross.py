@@ -181,7 +181,7 @@ class cross(object):
         # 前方道路堵住
         # 前方道路堵住需要探讨（前方道路的车是终结态还是等待态，只要最后有车等待，那就可以等待，如果最后一排的车全为终结，那就终结）
         if next_channel is None:  # 表示下一道路全满
-            print("真堵车了")
+            # print("真堵车了")
             # 判断下一道路最后一辆车的状态
             if nextRoad.last_row_are_waiting(car_dict):  # 如果下一条道路有车在等待,则本车也只能等待
                 carO.change2waiting_out()  # 后面的车不需要动
@@ -204,7 +204,7 @@ class cross(object):
 
                 # 更新后面车道的车辆
                 thisRoad.update_channel(new_channel, car_dict)
-                return
+            return
 
         # 前方道路没堵住
         assert thisRoad.roadStatus[carO.carLocation['channel'], carO.carLocation['pos']] == carO.carID  # 聊胜于无的断言

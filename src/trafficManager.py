@@ -49,13 +49,16 @@ class trafficManager:
                     cross.update_cross(self.roadDict, self.carDict)  # 道路和车辆对象送入
 
                 cross_loop_alert += 1
-                if cross_loop_alert > 5:
+                if cross_loop_alert > 10:
                     print("路口循环调度次数太多进行警告")
+                    assert False
+            print("LOOPs " + str(cross_loop_alert))
+
 
             # 4. 处理准备上路的车辆
             # 4.1 获取车辆列表
             carAtHomeList = self.updateCars()
-            for id in carAtHomeList[:20]:
+            for id in carAtHomeList[:50]:
                 carObj = self.carDict[id]
                 road_name = carObj.try_start(graph, self.TIME)
                 if road_name is not None:
@@ -67,7 +70,7 @@ class trafficManager:
     def getResult(self):
         for key in self.carDict.keys():
             self.result[self.carDict[key].carID] = {'startTime': self.carDict[key].startTime,
-                                                    'roads': self.carDict[key].passby()}
+                                                    'roads': self.carDict[key].passby}
         return self.result
 
     # 计算当前Graph

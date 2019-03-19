@@ -149,7 +149,7 @@ class road(object):
         carObj.mark_new_pos(roadID=self.roadID, channel=channel, pos=pos)
 
         # 打印一下信息
-        print(str(carObj.carID) + "出发了")
+        # print(str(carObj.carID) + "出发了")
 
     def getcheckInPlace(self):
         """
@@ -210,7 +210,7 @@ class road(object):
 
         car.change2success()  # 更改车辆状态
         self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
-        print(str(carO.carID) + " 回家了")
+        # print(str(carO.carID) + " 到家")
 
     def update_channel(self, channel_id, car_dict):
         """
@@ -235,7 +235,7 @@ class road(object):
         """
         assert np.all(self.roadStatus[:, 0] != -1)  # 断言，不应该出现空位存在
         for i in range(self.roadChannel):
-            if car_dict[self.roadStatus[0, i]].iscarWaiting():
+            if car_dict[self.roadStatus[i, 0]].iscarWaiting():
                 return True
         return False
 

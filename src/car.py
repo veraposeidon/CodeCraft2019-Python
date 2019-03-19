@@ -60,7 +60,7 @@ class car:
         # 记录经过路段
         if roadID not in self.passby:
             self.passby.append(roadID)
-            print(str(self.carID) + "经过： " + str(roadID))
+            # print(str(self.carID) + "经过： " + str(roadID))
 
 
     # 尝试找车辆路径，和下一路段名称
