@@ -54,10 +54,10 @@ def main():
     crosses = {}
     for item in crosses_dict.keys():
         cross_ = cross(id=crosses_dict[item]['id'],
-                       road1=crosses_dict[item]['roadId0Clock'],
-                       road2=crosses_dict[item]['roadId3Clock'],
-                       road3=crosses_dict[item]['roadId6Clock'],
-                       road4=crosses_dict[item]['roadId9Clock'])
+                       road1=crosses_dict[item]['road1'],
+                       road2=crosses_dict[item]['road2'],
+                       road3=crosses_dict[item]['road3'],
+                       road4=crosses_dict[item]['road4'])
         crosses[cross_.crossID] = cross_
     # 删除变量，释放内存
     del crosses_dict
@@ -102,26 +102,26 @@ def main():
                              crossDict=crosses,
                              carDict=cars,
                              roadDict=roads)
-    # 进行推断
+    # 进行演算
     manager.inference()
 
-    # 得到最终结果
+    # 得到演算结果
     result = manager.getResult()
 
     # 3. 调度结果写入输出文件
     # TODO: 写入 answer_path
     with open(str(answer_path), 'w') as f:
+        # result.keys().sort()    # 看有没有排序要求了
         for carID in result.keys():
             text = '(' + str(carID) + ", " + str(result[carID]['startTime']) + ", " + ", ".join(str(x) for x in result[carID]['roads']) + ")" + "\n"
             f.write(text)
 
 
-
 if __name__ == "__main__":
-    # import time
-    # start = time.clock()
+    import time
+    start = time.clock()
 
     main()
 
-    # elapsed = (time.clock() - start)
-    # print(elapsed)
+    elapsed = (time.clock() - start)
+    print(elapsed)

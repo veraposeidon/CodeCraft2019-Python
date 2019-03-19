@@ -31,10 +31,10 @@ def read_cross(cross_path):
             data = line.strip().strip('(').strip(')').split(', ')
             cross = dict()
             cross['id'] = int(data[0])
-            cross['roadId0Clock'] = int(data[1])
-            cross['roadId3Clock'] = int(data[2])
-            cross['roadId6Clock'] = int(data[3])
-            cross['roadId9Clock'] = int(data[4])
+            cross['road1'] = int(data[1])
+            cross['road2'] = int(data[2])
+            cross['road3'] = int(data[3])
+            cross['road4'] = int(data[4])
             crosses_dict[cross['id']] = cross
     return crosses_dict
 

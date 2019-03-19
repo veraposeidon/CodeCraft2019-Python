@@ -5,58 +5,62 @@ from dijsktra import Graph, dijsktra, createTopology, createGraph
 
 class trafficManager:
     def __init__(self, topologyDict, crossDict, carDict, roadDict):
-        self.topology = topologyDict
-        self.crossDict = crossDict
-        self.carDict = carDict
-        self.roadDict = roadDict
-        self.graph = None
-        self.jobisDone = False
-        self.TIME = 0
-        self.TIME_STEP = 1
-        self.result = dict()
+        self.topology = topologyDict  # 拓扑信息
+        self.crossDict = crossDict  # 路口对象
+        self.carDict = carDict  # 车辆对象
+        self.roadDict = roadDict  # 道路对象
+        self.graph = None  # 图模型
+
+        # 时间片和步进时间
+        self.TIME = -1  # 系统时间
+        self.TIME_STEP = 1  # 系统步进时间
+
+        self.result = dict()  # 调度结果
 
     # 核心：演算
     def inference(self):
-        self.TIME = 0   # 系统时间
+        self.TIME = 0  # 系统时间
         graph = self.getcurrentGraph()
         # 判断是否所有车辆运行结束
         while not self.isTaskCompleted():
-            # TODO: Update Graph
-            # update 太慢
-            # graph = self.getcurrentGraph()
 
-            # TODO: Update Car
-            # 获取车辆列表
-            carOnRoadList, carAtHomeList = self.updateCars()
-
-            # 在此处需要添加派出多少辆车
-            # 目前只处理第一辆车
-
-            for id in carOnRoadList[:30]:
-                onecarID = id
-                onecar =self.carDict[onecarID]
-                onecar.updateOneStep(self.TIME, self.roadDict, graph)
-
-            for id in carAtHomeList[:10]:
-                onecarID = id
-                onecar =self.carDict[onecarID]
-                onecar.updateOneStep(self.TIME, self.roadDict, graph)
-
-            # onecarID = carlist[0]
-            # onecar =self.carDict[onecarID]
-            # onecar.updateOneStep(self.TIME, self.roadDict, graph)
-
-            # TODO: Update Cross
-            # 暂时不用
-
-            # 更新时间
+            # 1. 更新时间片
             self.TIME += self.TIME_STEP
-            # print(self.TIME)
+            print(self.TIME)
 
-        # 所有车辆都运行完之后，还需要check一遍车辆，把最后一轮完成的更新一下
-        _,_ = self.updateCars()
-        print("Tasks Completed!")
+            # 2. 更新所有车道（调度一轮即可）。
+            # 2.1 获取道路ID列表 调度顺序：随机
+            roadList = self.roadDict.keys()
+            # 2.2 更新所有车道
+            for roadName in roadList:
+                road = self.roadDict[roadName]
+                road.update_road(self.carDict)  # 车辆对象集送入
 
+            # 3. 更新所有路口（需要调度多轮确保所有车辆完成终止态）
+            # 3.1 对路口进行排序
+            crossList = sorted(self.crossDict.keys())
+            cross_loop_alert = 0
+
+            # 不断循环，达到完成所有车辆调度完成的条件
+            while self.anyCar_waiting():
+                # 调度一轮所有路口
+                for crossID in crossList:
+                    cross = self.crossDict[crossID]
+                    cross.update_cross(self.roadDict, self.carDict)  # 道路和车辆对象送入
+
+                cross_loop_alert += 1
+                if cross_loop_alert > 5:
+                    print("路口循环调度次数太多进行警告")
+
+            # 4. 处理准备上路的车辆 暂时举例
+            carObj = self.carDict[10005]
+            road_name = carObj.try_start(graph, self.TIME)
+            if road_name is not None:
+                self.roadDict[road_name].try_on_road(carObj)
+
+            # 还要更新一边车辆，把跑完的车的结果记录一下
+
+        print("Tasks Completed! and Time cost: " + str(self.TIME))
 
     # 得到结果并返回
     def getResult(self):
@@ -85,6 +89,8 @@ class trafficManager:
         return True
 
     # 更新任务车辆列表
+    # 遍历完成任务的车辆，保留记录信
+    # 返回在路上的车辆和在家的车辆
     def updateCars(self):
         # 获取列表
         carOnRoadList = []
@@ -111,8 +117,12 @@ class trafficManager:
 
         return carOnRoadList, carAtHomeList
 
-
-
-
-
-
+    def anyCar_waiting(self):
+        """
+        判断道路上是否有车等待调度
+        :return:
+        """
+        for key in self.carDict.keys():
+            if self.carDict[key].iscarWaiting():
+                return True
+        return False

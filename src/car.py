@@ -1,15 +1,17 @@
 # coding:utf-8
 
 from enum import Enum, unique
-from dijsktra import dijsktra
+from dijsktra import dijsktra, Graph
+
 
 @unique
 class car_status(Enum):
-    WAITING_HOME = 0    # 在家准备出发
-    ON_RAOD = 1         # 上路，在路上
-    STUCK = 2           # 堵住
-    WAITING_CROSS = 3   # 等待路口调度
-    SUCCEED = 4         # 成功抵达终点
+    WAITING_HOME = 0  # 在家准备出发
+    ON_RAOD_STATE_END = 1  # 在路上，调度完毕
+    ON_RAOD_STATE_WAITING = 2  # 等待调度
+    ON_RAOD_STATE_WAITING_OUTCROSS = 3  # 出路口等待调度
+    ON_RAOD_STATE_WAITING_INCROSS = 4  # 不出路口等待调度
+    SUCCEED = 5  # 成功抵达终点
 
 
 # 定义车辆状态的对象
@@ -25,13 +27,10 @@ class car:
         self.startTime = None
         self.map = topology
         # 定位用道路，channel，长度表示
-        self.location = dict()
+        self.carLocation = {'roadID': None, 'channel': None, 'pos': None}
 
         # 规划路径
         self.strategy = None
-
-        # 当前道路
-        self.nowRoad = None
 
         # 经过道路
         self.passby = []
@@ -48,106 +47,104 @@ class car:
         else:
             return False
 
-    # 是否在路上
-    def isOnRoad(self):
+    # 标记新位置
+    def mark_new_pos(self, roadID, channel, pos):
+        # 标记位置
+        self.carLocation['roadID'] = roadID
+        self.carLocation['channel'] = channel
+        self.carLocation['pos'] = pos
+
+        # 标记状态,车辆调度结束
+        self.carStatus = car_status.ON_RAOD_STATE_END
+
+        # 记录经过路段
+        if roadID not in self.passby:
+            self.passby.append(roadID)
+            print("经过： " + str(roadID))
+
+
+    # 尝试找车辆路径，和下一路段名称
+    def try_start(self, graph, TIME):
+        # 对象类型断言检测
+        assert isinstance(graph, Graph)
+
+        # 如果已经在路上就不需要再启动了
         if self.carStatus != car_status.WAITING_HOME:
-            return True
-        else:
-            return False
+            return None
 
-    # 单步运行
-    def updateOneStep(self, time, roads, graph):
-        # 如果还没有开始运行，则启动
-        if self.carStatus is car_status.WAITING_HOME:
-            # 当时间到了则开始运行
-            if time >= self.carPlanStartTime:
-                # 更新状态
-                self.carStatus = car_status.ON_RAOD
+        # 1. 起点，终点 和 路径
+        start = self.carFrom
+        end = self.carTo
+        self.strategy = dijsktra(graph, start, end)
 
-                # 设定起始时间
-                self.startTime = time
+        now = self.strategy[0]
+        next = self.strategy[1]
 
-                # 打印信息
-                # print("car: " + str(self.carID) + " 启动了。")
+        # 2. 下段路名称
+        name = str(now) + "_" + str(next)
 
-                # 查找最优路径
-                self.strategy = self.findShortestPath(graph=graph)
+        # 3. 时间
+        self.startTime = TIME
 
-                # 放置在第一条路的起点
-                start = self.strategy[0]
-                to = self.strategy[1]
-                roadid = self.find_road(start, to)
-                # 轨迹上增添第一条道路
-                self.passby.append(roadid)
+        return name
 
-                # 一辆车一辆车跑的时候默认都在1车道跑
-                self.location = {'pos': 0, 'begin': start, 'end': to}
+    # 更改状态为等待处理
+    def change2waiting(self):
+        self.carStatus = car_status.ON_RAOD_STATE_WAITING
 
-                # TODO 开始上路 处理路上情况
-                self.step(roads)
-        else:
-            # TODO 处理路上情况
-            # print("car: " + str(self.carID) + " 正在路上")
-            self.step(roads)
+    # 更改状态为处理完成
+    def change2end(self):
+        self.carStatus = car_status.ON_RAOD_STATE_END
 
-    def step(self, roads):
-        # 当前位置
-        pos = self.location['pos']
-        road_name = str(self.location['begin']) + "_" + str(self.location['end'])
-        road = roads[road_name]
-        # channel = self.location['channel'] # 暂时用不到
+    # 更改状态为到达终点
+    def change2success(self):
+        self.carStatus = car_status.SUCCEED
+        print(str(self.carID) + " 到家了")
 
-        # 获取道路限速，长度
-        length = road.roadLength
-        spedLimit = road.roadSpeedLimit
-        remainLen = length - pos
-        # 限速
-        speed = min(self.carSpeed, spedLimit)
+    # 更改状态为出路口等待调度
+    def change2waiting_out(self):
+        self.carStatus = car_status.ON_RAOD_STATE_WAITING_OUTCROSS
 
-        # 分情况进行讨论
-        if remainLen >= speed:
-            # 直接前行状态
-            newPos = pos + speed
-            self.location['pos'] = newPos
-        else:
-            # pass
-            # 通过路口
-            # 1. 先找到下一条路（需要判断是否到了终点）
-            newbegin = self.location['end']
+    # 更改状态为不出路口等待调度
+    def change2waiting_inside(self):
+        self.carStatus = car_status.ON_RAOD_STATE_WAITING_INCROSS
 
-            # TODO 判断终点
-            if newbegin == self.carTo:
-                self.carStatus = car_status.SUCCEED
-                # print("car: " + str(self.carID) + " 到终点了")
-            else:
-                index = self.strategy.index(newbegin)
-                newend = self.strategy[index+1]
+    # 判断车辆是否为等待处理
+    def iscarWaiting(self):
+        return (self.carStatus is car_status.ON_RAOD_STATE_WAITING) or \
+               (self.carStatus is car_status.ON_RAOD_STATE_WAITING_OUTCROSS) or \
+               (self.carStatus is car_status.ON_RAOD_STATE_WAITING_INCROSS)
 
-                roadid = self.find_road(newbegin, newend)
+    # 判断车辆是否等待出路口
+    def iscarWaiting_out(self):
+        return self.carStatus is car_status.ON_RAOD_STATE_WAITING_OUTCROSS
 
-                # 轨迹上增添第一条道路
-                self.passby.append(roadid)
+    # 判断车辆是否在回家的路上
+    def iscar_wayhome(self):
+        roadID = self.carLocation['roadID']
 
-                road_name = str(newbegin) + "_" + str(newend)
-                road = roads[road_name]
-                # channel = self.location['channel'] # 暂时用不到
+        last = self.strategy[-2]
+        end = self.strategy[-1]
+        for item in self.map[last]:
+            if item['end'] == end:
+                if item['roadid'] == roadID:
+                    return True
 
-                # 获取道路限速，长度
-                length = road.roadLength
-                spedLimit = road.roadSpeedLimit
+        return False
 
-                # 限速
-                speed = min(self.carSpeed, spedLimit)
+    def next_road_name(self, crossID):
+        """
+        判断下一条路,需要判断是否到终点
+        TODO 最优路径变更也可以放在此处
+        :param crossID:
+        :return:
+        """
+        if crossID is self.carTo:   # 到终点
+            return None
 
-                newpos = speed - remainLen
-                self.location = {'pos': newpos, 'begin': newbegin, 'end': newend}
+        index = self.strategy.index(crossID)    # 下一个路口
+        next_cross = self.strategy[index+1]
 
-            # 2. 确定新路的起始位置
+        road_name = str(crossID) + "_" + str(next_cross)
+        return road_name
 
-
-    # 查地图，找道路
-    def find_road(self,start, to):
-        item = self.map[start]
-        for path in item:
-            if path['end'] is to:
-                return path['roadid']
