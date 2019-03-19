@@ -106,9 +106,11 @@ class road(object):
         """
         if start == end:    # 已在道路最前端
             return False, None, None
-        channeldetail = self.roadStatus[channel, :]
+        channeldetail = self.roadStatus[channel, :].flatten()
         for grid in range(start, end, 1):
-            if channeldetail[grid] != -1:               # 有车阻挡
+            if channeldetail[grid] == -1:
+                continue
+            else:   # 有车阻挡
                 return True, grid, channeldetail[grid]  # 返回bool, 位置， 车号
 
         # 无车阻挡
@@ -132,20 +134,22 @@ class road(object):
 
         # 2. 根据车速判断位置
         speed = min(carObj.carSpeed, self.roadSpeedLimit)
+        speed_pos = speed - 1
 
         # 速度低于空位置，则前进最大速度
         # 否则置于pos处
-        if speed <= pos:
-            pos = speed
+        if speed_pos <= pos:
+            pos = speed_pos
 
-        # 注意下标
-        pos = pos - 1
 
         # 注册新位置
         self.roadStatus[channel, pos] = carObj.carID
 
         # 更新到车辆信息
         carObj.mark_new_pos(roadID=self.roadID, channel=channel, pos=pos)
+
+        # 打印一下信息
+        print(str(carObj.carID) + "出发了")
 
     def getcheckInPlace(self):
         """
@@ -156,18 +160,21 @@ class road(object):
         """
         # 道路为空
         if np.all(self.roadStatus == -1):
-            return 0, self.roadLength
+            return 0, self.roadLength - 1   # 注意下标
+
         # 道路不为空
-        for channel in self.roadChannel:
-            # channel 满
-            if np.all(self.roadStatus[channel, :] != -1):
+        for channel in range(self.roadChannel):
+            # channel 满(判断最后一辆车就好)
+            if self.roadStatus[channel, 0] != -1:
                 continue
             # channel 不满
-            for pos in self.roadLength:
+            for pos in range(self.roadLength):
                 if self.roadStatus[channel, pos] == -1:
+                    if pos == self.roadLength - 1:   # 到头，那就是最大长度
+                        return channel, pos
                     continue
                 else:
-                    return channel, pos
+                    return channel, pos-1   # 返回空位置，而不是有阻挡的位置
         # 全满
         return None, None
 
@@ -226,9 +233,9 @@ class road(object):
         函数至此，已假定最后一排存在三辆车，此条件用以用于断言
         :return:
         """
-        assert np.any(self.roadStatus[0, :] == -1)  # 断言，不应该出现空位存在
+        assert np.all(self.roadStatus[:, 0] != -1)  # 断言，不应该出现空位存在
         for i in range(self.roadChannel):
-            if car_dict[self.roadStatus[0,i]].iscarWaiting():
+            if car_dict[self.roadStatus[0, i]].iscarWaiting():
                 return True
         return False
 

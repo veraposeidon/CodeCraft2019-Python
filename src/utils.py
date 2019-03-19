@@ -56,32 +56,32 @@ def read_car(car_path):
             cars_dict[car['id']] = car
     return cars_dict
 
-# # networkx 工具箱
-# def networkx(topologyDict, plot=False):
-#     import networkx as nx
-#     G = nx.DiGraph()
+# networkx 工具箱
+def networkx(topologyDict, plot=False):
+    import networkx as nx
+    G = nx.DiGraph()
 
-#     # 节点
-#     for node in topologyDict.keys():
-#         G.add_node(node)
+    # 节点
+    for node in topologyDict.keys():
+        G.add_node(node)
 
-#     # 边
-#     edge_label = dict()
-#     for item in topologyDict.items():
-#         for edge in item[1]:
-#             G.add_edge(edge['start'], edge['end'], length=edge['length'], weight = edge['length'])
-#             edge_label[(edge['start'], edge['end'])] = str(edge['roadid']) + ":" + str(edge['length'])
+    # 边
+    edge_label = dict()
+    for item in topologyDict.items():
+        for edge in item[1]:
+            G.add_edge(edge['start'], edge['end'], length=edge['length'], weight = edge['length'])
+            edge_label[(edge['start'], edge['end'])] = str(edge['roadid']) + ":" + str(edge['length'])
 
-#     print(G.number_of_nodes())
-#     print(G.number_of_edges())
+    print(G.number_of_nodes())
+    print(G.number_of_edges())
 
-#     if plot:
-#         import matplotlib.pyplot as plt
-#         # G = nx.petersen_graph()
-#         # plt.subplot(121)
-#         pos = nx.spring_layout(G, weight='length')
-#         nx.draw(G, pos, with_labels=True, edge_color='blue', font_weight='bold', node_size=200, node_color='pink')
-#         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_label)
-#         plt.show()
+    if plot:
+        import matplotlib.pyplot as plt
+        # G = nx.petersen_graph()
+        # plt.subplot(121)
+        pos = nx.spring_layout(G, weight='length')
+        nx.draw(G, pos, with_labels=True, edge_color='blue', font_weight='bold', node_size=200, node_color='pink')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_label)
+        plt.show()
 
-#     return G
+    return G

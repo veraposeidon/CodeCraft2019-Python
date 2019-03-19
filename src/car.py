@@ -60,7 +60,7 @@ class car:
         # 记录经过路段
         if roadID not in self.passby:
             self.passby.append(roadID)
-            print("经过： " + str(roadID))
+            print(str(self.carID) + "经过： " + str(roadID))
 
 
     # 尝试找车辆路径，和下一路段名称
@@ -70,6 +70,9 @@ class car:
 
         # 如果已经在路上就不需要再启动了
         if self.carStatus != car_status.WAITING_HOME:
+            return None
+        # 如果时间未到那就不要启动了
+        if TIME < self.carPlanStartTime:
             return None
 
         # 1. 起点，终点 和 路径
@@ -118,6 +121,9 @@ class car:
     # 判断车辆是否等待出路口
     def iscarWaiting_out(self):
         return self.carStatus is car_status.ON_RAOD_STATE_WAITING_OUTCROSS
+
+    def iscarWaiting_home(self):
+        return self.carStatus is car_status.WAITING_HOME
 
     # 判断车辆是否在回家的路上
     def iscar_wayhome(self):

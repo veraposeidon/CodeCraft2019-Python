@@ -1,7 +1,7 @@
 # coding:utf-8
 
 from dijsktra import Graph, dijsktra, createTopology, createGraph
-
+import random
 
 class trafficManager:
     def __init__(self, topologyDict, crossDict, carDict, roadDict):
@@ -52,18 +52,22 @@ class trafficManager:
                 if cross_loop_alert > 5:
                     print("路口循环调度次数太多进行警告")
 
-            # 4. 处理准备上路的车辆 暂时举例
-            carObj = self.carDict[10005]
-            road_name = carObj.try_start(graph, self.TIME)
-            if road_name is not None:
-                self.roadDict[road_name].try_on_road(carObj)
-
-            # 还要更新一边车辆，把跑完的车的结果记录一下
+            # 4. 处理准备上路的车辆
+            # 4.1 获取车辆列表
+            carAtHomeList = self.updateCars()
+            for id in carAtHomeList[:20]:
+                carObj = self.carDict[id]
+                road_name = carObj.try_start(graph, self.TIME)
+                if road_name is not None:
+                    self.roadDict[road_name].try_on_road(carObj)
 
         print("Tasks Completed! and Time cost: " + str(self.TIME))
 
     # 得到结果并返回
     def getResult(self):
+        for key in self.carDict.keys():
+            self.result[self.carDict[key].carID] = {'startTime': self.carDict[key].startTime,
+                                                    'roads': self.carDict[key].passby()}
         return self.result
 
     # 计算当前Graph
@@ -93,29 +97,17 @@ class trafficManager:
     # 返回在路上的车辆和在家的车辆
     def updateCars(self):
         # 获取列表
-        carOnRoadList = []
         carAtHomeList = []
         for carid in self.carDict.keys():
             car = self.carDict[carid]
-            if car.isEnded():
-                # 先将任务列表中已经结束的车辆剔除掉
-                # 注意剔除时要先保存一下行驶记录。
-                self.result[car.carID] = {'startTime': car.startTime,
-                                          'roads': car.passby}
-                # 那就不删除了， 结束车辆
-                # del self.carDict[carid]
-            else:
-                if car.isOnRoad():
-                    carOnRoadList.append(car.carID)
-                else:
-                    carAtHomeList.append(car.carID)
+            if car.iscarWaiting_home():
+                carAtHomeList.append(car.carID)
 
-        # # 排序
-        # # 如果按顺序更新的，我认为车要更新两遍，因为第一遍可能被前面车给挡住了
-        carOnRoadList.sort(reverse=False)
         carAtHomeList.sort(reverse=False)
+        # random.shuffle(carAtHomeList)
 
-        return carOnRoadList, carAtHomeList
+        return carAtHomeList
+
 
     def anyCar_waiting(self):
         """
