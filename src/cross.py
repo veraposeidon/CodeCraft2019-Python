@@ -2,7 +2,6 @@
 
 LOOPS_EVERY_CROSS = 5
 
-
 # 交叉路口对象
 # 还可以在此处安排优先级
 # 相当于交叉路口安排一个调度员
@@ -21,43 +20,47 @@ class cross(object):
         return roadPrior
 
     def update_cross(self, road_dict, car_dict):
-        # 2. 重复调度每个道路（处理每个道路的第一优先级），应该调度N遍即可。
+        # 2. 重复调度每个道路（处理每个道路的第一优先级），应该调度N遍即可。实在完不成就只能等其他路口调度完了再回来。
         for i in range(LOOPS_EVERY_CROSS):
             # 获取待调度道路信息
             next_roads = self.get_first_order_info(road_dict, car_dict)
             road_priors = sorted(next_roads.keys())
+
             # 2. 根据优先级，分别判断每个路口是否满足出路口（路口规则）
             for roadID in road_priors:
+                last_car = next_roads[roadID]['carO']   # 待调度车辆
 
-                # 本身状态
-                dirct = next_roads[roadID]['direction']
+                while roadID in next_roads:     # 确保路口的每一轮调度都最大化道路的运输能力，除非转弯顺序不允许或者没有待转弯车辆了。
+                    # TODO: 这个While值得探讨：卡在waiting也满足roadID in next_roads 条件，要排除卡在waiting这个环节
+                    # 所以应加一个状态判断，如果优先车辆没变，那也要跳出
 
-                # 对方向进行判断
-                if dirct is "D":  # 直行优先
+                    # 对方向进行判断
+                    dirct = next_roads[roadID]['direction']
+                    if dirct is "D":    # 直行优先
+                        pass
+                    elif dirct is "L":  # 左转需要判断有无直行到目标道路车辆
+                        if self.has_straight_to_conflict(next_roads, next_roads[roadID]['next_road_id']):  # 有直行车辆，跳过
+                            break   # 跳出while 调度下一道路
+                    elif dirct is "R":  # 右转需要哦安短有无直行或左转到目标道路车辆
+                        if self.has_straight_left_to_conflict(next_roads,
+                                                          next_roads[roadID]['next_road_id']):  # 有直行或左转车辆，跳过
+                            break   # 跳出while 调度下一道路
+
+                    # 调度车辆
                     carO = next_roads[roadID]['carO']
                     thisRoad = road_dict[next_roads[roadID]['road_name']]
                     nextRoad = road_dict[next_roads[roadID]['next_road_name']]
                     self.move_car_across(carO, thisRoad, nextRoad, car_dict)
 
-                    # TODO 更新next_roads
-                elif dirct is "L":  # 左转需要判断有无直行到目标道路车辆
-                    if self.has_straight_to_conflict(next_roads, next_roads[roadID]['next_road_id']):  # 有直行车辆，跳过
-                        continue    # 调度下一条路
-                    else:  # 无直行车辆，调度
-                        carO = next_roads[roadID]['carO']
-                        thisRoad = road_dict[next_roads[roadID]['road_name']]
-                        nextRoad = road_dict[next_roads[roadID]['next_road_name']]
-                        self.move_car_across(carO, thisRoad, nextRoad, car_dict)
-                        # TODO 更新next_roads
-                elif dirct is "R":  # 右转需要哦安短有无直行或左转到目标道路车辆
-                    if self.has_straight_left_to_conflict(next_roads, next_roads[roadID]['next_road_id']):  # 有直行或左转车辆，跳过
-                        continue    # 调度下一条路
-                    else:
-                        carO = next_roads[roadID]['carO']
-                        thisRoad = road_dict[next_roads[roadID]['road_name']]
-                        nextRoad = road_dict[next_roads[roadID]['next_road_name']]
-                        self.move_car_across(carO, thisRoad, nextRoad, car_dict)
-                        # TODO 更新next_roads
+                    next_roads = self.get_first_order_info(road_dict, car_dict)     # 获取新的第一优先级的信息
+
+                    # 判断更新后的优先车辆是否没动
+                    if roadID in next_roads:
+                        this_car = next_roads[roadID]['carO']
+                        if this_car == last_car:
+                            break   # 跳出，调度下一道路
+                        else:
+                            last_car = this_car
 
     def get_direction(self, roadID, next_road):
         """
@@ -180,15 +183,15 @@ class cross(object):
         if next_channel is None:  # 表示下一道路全满
             print("真堵车了")
             # 判断下一道路最后一辆车的状态
-            if nextRoad.last_row_are_waiting(car_dict):     # 如果下一条道路有车在等待,则本车也只能等待
-                carO.change2waiting_out()   # 后面的车不需要动
-            else:   # 前车终止态，本车运行到道路前方
-                new_pos = thisRoad.roadLength - 1   # 注意下标
+            if nextRoad.last_row_are_waiting(car_dict):  # 如果下一条道路有车在等待,则本车也只能等待
+                carO.change2waiting_out()  # 后面的车不需要动
+            else:  # 前车终止态，本车运行到道路前方
+                new_pos = thisRoad.roadLength - 1  # 注意下标
                 new_channel = carO.carLocation['channel']
 
                 # 判断位置是否为相同
                 if carO.carLocation['pos'] == new_pos:
-                    carO.change2end()   # 保持不动
+                    carO.change2end()  # 保持不动
                 else:
                     # 注册新位置
                     thisRoad.roadStatus[new_channel, new_pos] = carO.carID
@@ -206,11 +209,11 @@ class cross(object):
         # 前方道路没堵住
         assert thisRoad.roadStatus[carO.carLocation['channel'], carO.carLocation['pos']] == carO.carID  # 聊胜于无的断言
 
-        remain_dis = (thisRoad.roadLength-1) - carO.carLocation['pos']  # 上端剩余距离
+        remain_dis = (thisRoad.roadLength - 1) - carO.carLocation['pos']  # 上端剩余距离
         speed = min(carO.carSpeed, nextRoad.roadSpeedLimit)
         real_dis = max(speed - remain_dis, 0)
-        if real_dis == 0:   # 表示不支持转入下一道路，现在调度到本车道终点处，不变channel
-            new_pos = thisRoad.roadLength - 1   # 注意下标
+        if real_dis == 0:  # 表示不支持转入下一道路，现在调度到本车道终点处，不变channel
+            new_pos = thisRoad.roadLength - 1  # 注意下标
             old_channel = carO.carLocation['channel']
             old_pos = carO.carLocation['pos']
 
@@ -221,7 +224,7 @@ class cross(object):
                 # 注册新位置
                 thisRoad.roadStatus[old_channel, new_pos] = carO.carID
                 # 抹除旧位置
-                thisRoad.roadStatus[old_channel, old_pos ] = -1  # 将车辆所在位置置空
+                thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
                 carO.mark_new_pos(roadID=thisRoad.roadID, channel=old_channel, pos=new_pos)
                 # 标记车辆为EndState
@@ -231,7 +234,7 @@ class cross(object):
             thisRoad.update_channel(old_channel, car_dict)
             return
 
-        else:   # 有机会调度到下一道路# 三种情况，够长，直接到位；前方有车，endstate，追尾；前方有车，waiting,不动waiting。
+        else:  # 有机会调度到下一道路# 三种情况，够长，直接到位；前方有车，endstate，追尾；前方有车，waiting,不动waiting。
             new_pos = real_dis - 1  # 注意下标
             old_channel = carO.carLocation['channel']
             old_pos = carO.carLocation['pos']
@@ -239,9 +242,9 @@ class cross(object):
             # 判断前方有无车辆
             has_car, front_pos, front_id = nextRoad.has_car(next_channel, 0, new_pos + 1)
             if has_car:  # 前方有车
-                if car_dict[front_id].iscarWaiting():   # 前车正在等待
-                    carO.change2waiting_out()           # 标记为等待出路口
-                else:   # 前车结束
+                if car_dict[front_id].iscarWaiting():  # 前车正在等待
+                    carO.change2waiting_out()  # 标记为等待出路口
+                else:  # 前车结束
                     dis = front_pos
                     assert dis >= 1  # 要是距离短于1就见鬼了
                     new_pos = front_pos - 1  # 还能前进一段，新位置在前车屁股
@@ -265,4 +268,3 @@ class cross(object):
             # 更新后方车道
             thisRoad.update_channel(old_channel, car_dict)
             return
-

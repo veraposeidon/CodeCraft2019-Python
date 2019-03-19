@@ -41,7 +41,7 @@ class trafficManager:
             crossList = sorted(self.crossDict.keys())
             cross_loop_alert = 0
 
-            # 不断循环，达到完成所有车辆调度完成的条件
+            # 3.2 这个While 是刚需，必须要完成道路所有车辆的调度才能进行下一个时间片
             while self.anyCar_waiting():
                 # 调度一轮所有路口
                 for crossID in crossList:
