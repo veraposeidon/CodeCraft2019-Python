@@ -6,7 +6,7 @@ import sys
 from utils import read_road, read_cross, read_car
 from car import Car
 from cross import cross
-from road import road
+from road import Road
 
 from trafficManager import trafficManager
 from dijsktra import create_topology
@@ -78,9 +78,9 @@ def main():
     roads = {}
     for item in roads_dict.keys():
         # 正向道路
-        road_ = road(id=roads_dict[item]['id'],
+        road_ = Road(road_id=roads_dict[item]['id'],
                      length=roads_dict[item]['length'],
-                     speedlimit=roads_dict[item]['speed'],
+                     speed_limit=roads_dict[item]['speed'],
                      channel=roads_dict[item]['channel'],
                      origin=roads_dict[item]['from'],
                      dest=roads_dict[item]['to'])
@@ -88,9 +88,9 @@ def main():
 
         # 反向道路
         if roads_dict[item]['isDuplex'] == 1:
-            road_ = road(id=roads_dict[item]['id'],
+            road_ = Road(road_id=roads_dict[item]['id'],
                          length=roads_dict[item]['length'],
-                         speedlimit=roads_dict[item]['speed'],
+                         speed_limit=roads_dict[item]['speed'],
                          channel=roads_dict[item]['channel'],
                          origin=roads_dict[item]['to'],
                          dest=roads_dict[item]['from'])

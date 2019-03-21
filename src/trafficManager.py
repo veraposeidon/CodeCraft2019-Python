@@ -6,7 +6,7 @@ random.seed(42)
 
 # 超参数
 # 定义特别大的值则不考虑场上车辆
-CARS_ON_ROAD = 1200
+CARS_ON_ROAD = 1300
 
 # 一次上路车辆 基数     动态上路
 CAR_GET_START_BASE = 50
@@ -88,7 +88,8 @@ class trafficManager:
                     # TODO: 动态更改拓扑图的权重
                     graph = self.getcurrentGraph(self.roadDict)
                     # 更新在路上的车的路线。
-                    for carID in carOnRoadList:
+                    # for carID in carOnRoadList:
+                    for carID in carOnRoadList[:int(lenOnRoad / 2)]:
                         self.carDict[carID].update_new_strategy(graph)
 
                 if cross_loop_alert > self.LOOPS_TO_DEAD_CLOCK:
