@@ -107,6 +107,7 @@ class trafficManager:
             # self.CARS_ON_ROAD = CARS_ON_ROAD / (cross_loop_alert+0.1)
 
             if lenOnRoad < self.CARS_ON_ROAD:       # TODO: 动态更改地图车辆容量
+                # TODO 则按车辆编号由小到大的顺序上路行驶。
                 # TODO: 动态上路数目
                 # if len(carAtHomeList) < self.CARS_ON_ROAD:
                 #     how_many = len(carAtHomeList)

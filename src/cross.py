@@ -238,7 +238,7 @@ class cross(object):
             old_pos = carO.carGPS['pos']
 
             # 判断前方有无车辆
-            has_car, front_pos, front_id = nextRoad.has_car(next_channel, 0, new_pos + 1)
+            has_car, front_pos, front_id = nextRoad.has_car(next_channel, 0, new_pos+1)
             if has_car:  # 前方有车
                 if car_dict[front_id].is_car_waiting():  # 前车正在等待
                     carO.change2waiting_out()  # 标记为等待出路口
