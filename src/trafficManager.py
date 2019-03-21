@@ -1,6 +1,6 @@
 # coding:utf-8
 
-from dijsktra import Graph, dijsktra, createTopology, createGraph
+from dijsktra import Graph, dijsktra, create_topology, create_graph
 import random
 random.seed(42)
 
@@ -143,7 +143,7 @@ class trafficManager:
                 road_weight = road_dict[road_name].get_road_weight()
                 item['weight'] = item['length'] * (1 + road_weight * self.ROAD_WEIGHTS_CALC)
 
-        graph = createGraph(self.topology)
+        graph = create_graph(self.topology)
 
         return graph
 
