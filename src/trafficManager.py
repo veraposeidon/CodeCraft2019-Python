@@ -1,12 +1,12 @@
 # coding:utf-8
 
-from dijsktra import Graph, dijsktra, create_topology, create_graph
+from dijsktra import create_graph
 import random
 random.seed(42)
 
 # 超参数
 # 定义特别大的值则不考虑场上车辆
-CARS_ON_ROAD = 1300
+CARS_ON_ROAD = 1500
 
 # 一次上路车辆 基数     动态上路
 CAR_GET_START_BASE = 50
