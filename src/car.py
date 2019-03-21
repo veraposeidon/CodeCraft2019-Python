@@ -2,7 +2,7 @@
 
 from enum import Enum, unique
 from dijsktra import dijsktra, Graph
-
+from copy import copy, deepcopy
 
 @unique
 class car_status(Enum):
@@ -27,7 +27,7 @@ class car:
         self.startTime = None
         self.map = topology
         # 定位用道路，channel，长度表示
-        self.carLocation = {'roadID': None, 'channel': None, 'pos': None}
+        self.carLocation = {'roadID': None, 'channel': None, 'pos': None, 'now': None ,'next': None}
 
         # 规划路径
         self.strategy = None
@@ -48,17 +48,20 @@ class car:
             return False
 
     # 标记新位置
-    def mark_new_pos(self, roadID, channel, pos):
+    def mark_new_pos(self, roadID, channel, pos,this_cross, next_cross):
         # 标记位置
         self.carLocation['roadID'] = roadID
         self.carLocation['channel'] = channel
         self.carLocation['pos'] = pos
+        self.carLocation['next'] = next_cross
+        self.carLocation['now'] = this_cross
 
         # 标记状态,车辆调度结束
         self.carStatus = car_status.ON_RAOD_STATE_END
 
         # 记录经过路段
-        if roadID not in self.passby:
+        # 重点注意：可能会重复出现路线，因此应当与最后一个路进行比较即可
+        if (len(self.passby) == 0) or (len(self.passby) > 0 and roadID != self.passby[-1]):
             self.passby.append(roadID)
             # print(str(self.carID) + "经过： " + str(roadID))
 
@@ -102,7 +105,7 @@ class car:
     # 更改状态为到达终点
     def change2success(self):
         self.carStatus = car_status.SUCCEED
-        print(str(self.carID) + " 到家了")
+        # print(str(self.carID) + " 到家了")
 
     # 更改状态为出路口等待调度
     def change2waiting_out(self):
@@ -111,6 +114,10 @@ class car:
     # 更改状态为不出路口等待调度
     def change2waiting_inside(self):
         self.carStatus = car_status.ON_RAOD_STATE_WAITING_INCROSS
+
+    # 更改状态为不出路口等待调度
+    def iscarOnRoad(self):
+        return self.iscarWaiting() or (self.carStatus is car_status.ON_RAOD_STATE_END)
 
     # 判断车辆是否为等待处理
     def iscarWaiting(self):
@@ -141,7 +148,6 @@ class car:
     def next_road_name(self, crossID):
         """
         判断下一条路,需要判断是否到终点
-        TODO 最优路径变更也可以放在此处
         :param crossID:
         :return:
         """
@@ -154,3 +160,23 @@ class car:
         road_name = str(crossID) + "_" + str(next_cross)
         return road_name
 
+    def updateNewStratogy(self, graph):
+        """
+        更新策略的时候一定要注意不走回头路。
+        :param graph:
+        :return:
+        """
+        if self.iscar_wayhome():     # 回家路上没有用
+            return
+
+        nextcross = self.carLocation['next']
+        thiscross = self.carLocation['now']
+
+        self.strategy = dijsktra(graph, nextcross, self.carTo)  # 下一路口到家的路
+        # 判断走没有所在的路，要是有，就重新更新下Graph,重新找最优路径
+        if thiscross == self.strategy[1]:
+            # 深拷贝，避免影响原有拓扑
+            new_graph = deepcopy(graph)
+            new_graph.weights[(nextcross,thiscross)] = 1000     # 加大权重
+            self.strategy = dijsktra(new_graph, nextcross, self.carTo)  # 下一路口到家的路
+            del new_graph   # 节省内存

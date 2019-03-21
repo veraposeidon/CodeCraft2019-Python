@@ -35,7 +35,7 @@ def createGraph(topologyDict):
     for key, value in topologyDict.items():
         # value 为 list
         for item in value:
-            graph.add_edge(item['start'], item['end'], item['length'])
+            graph.add_edge(item['start'], item['end'], item['weight'])
 
     return graph
 

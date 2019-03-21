@@ -12,6 +12,7 @@ from road import road
 from trafficManager import trafficManager
 from dijsktra import createTopology
 
+
 logging.basicConfig(level=logging.DEBUG,
                     filename='./logs/CodeCraft-2019.log',
                     format='[%(asctime)s] %(levelname)s [%(funcName)s: %(filename)s, %(lineno)d] %(message)s',
@@ -47,6 +48,9 @@ def main():
 
     # 2.1 根据 road 生成拓扑地图
     topologyDict = createTopology(roads_dict)
+
+    # # 绘图
+    # from utils import networkx
     # G = networkx(topologyDict, plot=True)
 
     # 2.2 根据 cross 生成每个信号灯对象
@@ -120,6 +124,7 @@ def main():
 if __name__ == "__main__":
     import time
     start = time.clock()
+    print(start)
 
     main()
 

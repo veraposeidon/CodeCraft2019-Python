@@ -1,6 +1,6 @@
 # coding:utf-8
 
-LOOPS_EVERY_CROSS = 5
+LOOPS_EVERY_CROSS = 1
 
 # 交叉路口对象
 # 还可以在此处安排优先级
@@ -31,8 +31,6 @@ class cross(object):
                 last_car = next_roads[roadID]['carO']   # 待调度车辆
 
                 while roadID in next_roads:     # 确保路口的每一轮调度都最大化道路的运输能力，除非转弯顺序不允许或者没有待转弯车辆了。
-                    # TODO: 这个While值得探讨：卡在waiting也满足roadID in next_roads 条件，要排除卡在waiting这个环节
-                    # 所以应加一个状态判断，如果优先车辆没变，那也要跳出
 
                     # 对方向进行判断
                     dirct = next_roads[roadID]['direction']
@@ -140,7 +138,7 @@ class cross(object):
                         # 获取道路ID
                         road_now_id = road_dict[road_name].roadID
                         road_next_id = road_dict[next_road_name].roadID
-                        assert road_now_id != road_next_id  # 聊胜于无
+                        assert road_now_id != road_next_id  # 聊胜于无  # 出现相同是因为计划路线出现了掉头，这个是不允许的。要在车辆更新路线时进行否定
 
                         # 获取方向,填入信息
                         direction = self.get_direction(road_now_id, road_next_id)
@@ -198,7 +196,7 @@ class cross(object):
                     # 抹除旧位置
                     thisRoad.roadStatus[new_channel, carO.carLocation['pos']] = -1  # 将车辆所在位置置空
                     # 更新到车辆信息
-                    carO.mark_new_pos(roadID=thisRoad.roadID, channel=new_channel, pos=new_pos)
+                    carO.mark_new_pos(roadID=thisRoad.roadID, channel=new_channel, pos=new_pos,this_cross=thisRoad.roadOrigin, next_cross=thisRoad.roadDest)
                     # 标记车辆为EndState
                     carO.change2end()
 
@@ -226,7 +224,7 @@ class cross(object):
                 # 抹除旧位置
                 thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                carO.mark_new_pos(roadID=thisRoad.roadID, channel=old_channel, pos=new_pos)
+                carO.mark_new_pos(roadID=thisRoad.roadID, channel=old_channel, pos=new_pos,this_cross=thisRoad.roadOrigin,next_cross=thisRoad.roadDest)
                 # 标记车辆为EndState
                 carO.change2end()
 
@@ -253,7 +251,7 @@ class cross(object):
                     # 抹除旧位置
                     thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                     # 更新到车辆信息
-                    carO.mark_new_pos(roadID=nextRoad.roadID, channel=next_channel, pos=new_pos)
+                    carO.mark_new_pos(roadID=nextRoad.roadID, channel=next_channel, pos=new_pos, this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
                     # 标记车辆为EndState
                     carO.change2end()
             else:
@@ -262,7 +260,7 @@ class cross(object):
                 # 抹除旧位置
                 thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                carO.mark_new_pos(roadID=nextRoad.roadID, channel=next_channel, pos=new_pos)
+                carO.mark_new_pos(roadID=nextRoad.roadID, channel=next_channel, pos=new_pos,this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
                 # 标记车辆为EndState
                 carO.change2end()
             # 更新后方车道
