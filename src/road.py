@@ -19,12 +19,15 @@ class Road(object):
     def initialize_road(self):
         """
         初始化道路详情，全部置-1
+        INT16: -32768 ~ +32767
+        INT32: -2147483648 ~ +2147483647
+        INT64: -9223372036854775808 ~ +9223372036854775807
         :return:
         """
         channel = self.roadChannel
         length = self.roadLength
         road_detail = np.ones((channel, length)) * -1
-        return road_detail.astype(np.int16)  # 车辆编号较大
+        return road_detail.astype(np.int32)  # 车辆编号较大   # INT16不够用
 
     def update_road(self, car_dict):
         """

@@ -129,4 +129,4 @@ if __name__ == "__main__":
     main()
 
     elapsed = (time.clock() - start)
-    print(elapsed)
+    print("Program Time:" + str(elapsed))

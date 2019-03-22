@@ -124,7 +124,7 @@ class trafficManager:
 
                 print(count_start, len(carAtHomeList), self.CARS_ON_ROAD, lenOnRoad, succed)
 
-        print("Tasks Completed! and Time cost: " + str(self.TIME))
+        print("Tasks Completed! and Schedule Time is: " + str(self.TIME))
 
     # 得到结果并返回
     def getResult(self):

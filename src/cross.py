@@ -1,6 +1,6 @@
 # coding:utf-8
 
-LOOPS_EVERY_CROSS = 1
+LOOPS_EVERY_CROSS = 3
 
 # 交叉路口对象
 # 还可以在此处安排优先级
