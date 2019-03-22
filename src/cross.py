@@ -7,11 +7,15 @@ class Cross(object):
     路口信息
     """
 
-    def __init__(self, cross_id, road1, road2, road3, road4,
+    def __init__(self, cross_id, road1, road2, road3, road4, road_dict,
                  loops_every_cross=1):
         self.crossID = cross_id
         self.roads = [road1, road2, road3, road4]  # 道路分布
-        self.roads_prior = self.get_road_priors()  # 道路调度优先级
+        # 本路口道路调度优先级    id表示
+        self.roads_prior_id = self.get_road_priors()
+        # 本路口道路调度优先级    name表示
+        self.roads_prior_name = [self.find_road_name_to_cross(road_dict, r_id) for r_id in self.roads_prior_id]
+        self.roads_prior_name = [o for o in self.roads_prior_name if o is not None]  # 去除单向道路
         self.LOOPS_EVERY_CROSS = loops_every_cross  # 路口调度循环次数
 
     def get_road_priors(self):
@@ -23,6 +27,18 @@ class Cross(object):
         road_prior.sort()  # 升序
         road_prior = [x for x in road_prior if x != -1]  # 去掉-1
         return road_prior
+
+    def find_road_name_to_cross(self, road_dict, road_id):
+        """
+        根据道路ID和路口名称找道路名称
+        :param road_id:     道路ID
+        :param road_dict:   道路字典
+        :return:            道路名称
+        """
+        for key in road_dict.keys():
+            if (road_dict[key].roadID == road_id) and (road_dict[key].roadDest == self.crossID):
+                return key
+        return None
 
     def update_cross(self, road_dict, car_dict):
         """
@@ -45,41 +61,62 @@ class Cross(object):
                 while roadID in next_roads:  # 确保路口的每一轮调度都最大化道路的运输能力，除非转弯顺序不允许或者没有待转弯车辆了。
 
                     # 对方向进行判断
-                    dirct = next_roads[roadID]['direction']
-                    if dirct is "D":  # 直行优先
+                    direct = next_roads[roadID]['direction']
+                    if direct is "D":  # 直行优先
                         pass
-                    elif dirct is "L":  # 左转需要判断有无直行到目标道路车辆
-                        if self.has_straight_to_conflict(next_roads, next_roads[roadID]['next_road_id']):  # 有直行车辆，跳过
+                    elif direct is "L":
+                        # 左转需要判断有无直行到目标道路车辆
+                        # 有直行车辆冲突，跳过
+                        if self.has_straight_to_conflict(next_roads, next_roads[roadID]['next_road_id']):
                             break  # 跳出while 调度下一道路
-                    elif dirct is "R":  # 右转需要哦安短有无直行或左转到目标道路车辆
+                    elif direct is "R":
+                        # 右转需要哦安短有无直行或左转到目标道路车辆
+                        # 有直行或左转车辆冲突，跳过
                         if self.has_straight_left_to_conflict(next_roads,
-                                                              next_roads[roadID]['next_road_id']):  # 有直行或左转车辆，跳过
+                                                              next_roads[roadID]['next_road_id']):
                             break  # 跳出while 调度下一道路
 
                     # 调度车辆
-                    carO = next_roads[roadID]['carO']
-                    thisRoad = road_dict[next_roads[roadID]['road_name']]
-                    nextRoad = road_dict[next_roads[roadID]['next_road_name']]
-                    self.move_car_across(carO, thisRoad, nextRoad, car_dict)
+                    car_o = next_roads[roadID]['carO']
+                    this_road = road_dict[next_roads[roadID]['road_name']]
+                    next_road = road_dict[next_roads[roadID]['next_road_name']]
+                    self.move_car_across(car_o, this_road, next_road, car_dict)
 
-                    next_roads = self.get_first_order_info(road_dict, car_dict)  # 获取新的第一优先级的信息
+                    # # 版本旧
+                    # # 更新道路第一优先级车辆
+                    # next_roads = self.get_first_order_info(road_dict, car_dict)
+                    # # 判断更新后的第一辆车还是不是之前的
+                    # if roadID in next_roads:
+                    #     this_car = next_roads[roadID]['carO']
+                    #     if this_car is last_car:
+                    #         break  # 还是上一辆，说明没动，跳出，调度下一道路
+                    #     else:
+                    #         last_car = this_car
 
-                    # 判断更新后的优先车辆是否没动
-                    if roadID in next_roads:
+                    # 优化版本
+                    road_id, first_info = self.get_road_first_order_info(next_roads[roadID]['road_name'], road_dict,
+                                                                         car_dict)
+                    # 该道路还有待调度车辆
+                    if road_id is not None:
+                        next_roads[road_id] = first_info
+                        # 判断更新后的第一辆车还是不是之前的
                         this_car = next_roads[roadID]['carO']
-                        if this_car == last_car:
-                            break  # 跳出，调度下一道路
+                        if this_car is last_car:
+                            break  # 还是上一辆，说明没动，跳出，调度下一道路
                         else:
                             last_car = this_car
+                    else:
+                        del next_roads[roadID]
+                        break
 
-    def get_direction(self, roadID, next_road):
+    def get_direction(self, road_id, next_road):
         """
         判断出路口转向
-        :param roadID:
+        :param road_id:
         :param next_road:
         :return:
         """
-        index_now = self.roads.index(roadID)
+        index_now = self.roads.index(road_id)
         index_next = self.roads.index(next_road)
         assert index_next is not index_now  # 虽然废话，断言依旧
 
@@ -125,56 +162,91 @@ class Cross(object):
         :param car_dict:
         :return:
         """
-        road_prior = [self.find_road_name_to_cross(road_dict, r_id) for r_id in self.roads_prior]
-        road_prior = [o for o in road_prior if o is not None]  # 单向道路会产生None
-
+        road_prior = self.roads_prior_name.copy()
         next_roads = dict()
 
-        for road_name in road_prior[:]:
-            while True:
-                carO = road_dict[road_name].get_first_order_car(car_dict)
-                if carO is None:  # 当前道路没有待出路口车辆
-                    road_prior.remove(road_name)  # 当前道路不参与调度
-                    break
-
-                else:  # 当前道路有待出路口车辆,
-                    if carO.next_road_name(self.crossID) is None:  # 判断是否要回家的
-                        # 更新回家车辆
-                        road_dict[road_name].move_car_home(carO)
-                        # 更新车道信息
-                        road_dict[road_name].update_channel(carO.carGPS['channel'], car_dict)
-                        continue  # 继续更新本条道路的第一优先级
-
-                    else:
-                        # 车辆下一条路的名称
-                        next_road_name = carO.next_road_name(self.crossID)
-
-                        # 获取道路ID
-                        road_now_id = road_dict[road_name].roadID
-                        road_next_id = road_dict[next_road_name].roadID
-                        assert road_now_id != road_next_id  # 聊胜于无  # 出现相同是因为计划路线出现了掉头，这个是不允许的。要在车辆更新路线时进行否定
-
-                        # 获取方向,填入信息
-                        direction = self.get_direction(road_now_id, road_next_id)
-                        next_roads[road_now_id] = {'carO': carO,
-                                                   'road_name': road_name,
-                                                   'next_road_id': road_next_id,
-                                                   'next_road_name': next_road_name,
-                                                   'direction': direction}
-                        break  # 换道
+        # new version
+        for road_name in road_prior:
+            road_id, first_info = self.get_road_first_order_info(road_name, road_dict, car_dict)
+            if road_id is not None:
+                next_roads[road_id] = first_info
         return next_roads
 
-    def find_road_name_to_cross(self, road_dict, road_id):
+        # # older version
+        # for road_name in road_prior[:]:
+        #     while True:
+        #         car_obj = road_dict[road_name].get_first_order_car(car_dict)
+        #         if car_obj is None:  # 当前道路没有待出路口车辆
+        #             road_prior.remove(road_name)  # 当前道路不参与调度
+        #             break   # 换道
+        #
+        #         else:  # 当前道路有待出路口车辆,
+        #             if car_obj.next_road_name(self.crossID) is None:  # 是否下一站到家
+        #                 # 车辆回家
+        #                 road_dict[road_name].move_car_home(car_obj)
+        #                 # 更新车道后方信息
+        #                 road_dict[road_name].update_channel(car_obj.carGPS['channel'], car_dict)
+        #                 continue  # 继续更新本条道路的第一优先级
+        #
+        #             else:
+        #                 # 车辆下一条路的名称
+        #                 next_road_name = car_obj.next_road_name(self.crossID)
+        #
+        #                 # 获取道路ID
+        #                 road_now_id = road_dict[road_name].roadID
+        #                 road_next_id = road_dict[next_road_name].roadID
+        #                 assert road_now_id != road_next_id  # 聊胜于无  # 出现相同是因为计划路线出现了掉头，这个是不允许的。要在车辆更新路线时进行否定
+        #
+        #                 # 获取方向,填入信息
+        #                 direction = self.get_direction(road_now_id, road_next_id)
+        #                 next_roads[road_now_id] = {'carO': car_obj,
+        #                                            'road_name': road_name,
+        #                                            'next_road_id': road_next_id,
+        #                                            'next_road_name': next_road_name,
+        #                                            'direction': direction}
+        #                 break  # 换道
+        # return next_roads
+
+
+    def get_road_first_order_info(self, road_name, road_dict, car_dict):
         """
-        根据道路ID和路口名称找道路
-        :param road_id:
+        获取道路的出路口第一优先级车辆
+        :param car_dict:
         :param road_dict:
-        :return:
+        :param road_name:
+        :return: None 或者 first_order_info：dict
         """
-        for key in road_dict.keys():
-            if (road_dict[key].roadID == road_id) and (road_dict[key].roadDest == self.crossID):
-                return key
-        return None
+        while True:
+            car_obj = road_dict[road_name].get_first_order_car(car_dict)
+            # 当前道路没有待出路口车辆
+            if car_obj is None:
+                return None, None
+
+            # 当前道路有待出路口车辆
+            else:
+                if car_obj.next_road_name(self.crossID) is None:  # 是否下一站到家
+                    # 车辆回家
+                    road_dict[road_name].move_car_home(car_obj)
+                    # 更新车道后方信息
+                    road_dict[road_name].update_channel(car_obj.carGPS['channel'], car_dict)
+                    continue  # 继续更新本条道路的第一优先级
+                else:
+                    # 不回家车辆的下一条路名称
+                    next_road_name = car_obj.next_road_name(self.crossID)
+
+                    # 获取道路ID
+                    road_now_id = road_dict[road_name].roadID
+                    road_next_id = road_dict[next_road_name].roadID
+                    assert road_now_id != road_next_id  # 聊胜于无  # 出现相同是因为计划路线出现了掉头，这个是不允许的。要在车辆更新路线时进行否定
+
+                    # 获取方向,填入信息
+                    direction = self.get_direction(road_now_id, road_next_id)
+                    first_order_info = {'carO': car_obj,
+                                        'road_name': road_name,
+                                        'next_road_id': road_next_id,
+                                        'next_road_name': next_road_name,
+                                        'direction': direction}
+                    return road_now_id, first_order_info
 
     def move_car_across(self, carO, thisRoad, nextRoad, car_dict):
         """

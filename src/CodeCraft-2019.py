@@ -3,7 +3,6 @@
 import logging
 import sys
 
-
 from utils import read_road, read_cross, read_car
 from car import Car
 from cross import Cross
@@ -11,7 +10,6 @@ from road import Road
 
 from trafficManager import trafficManager
 from dijsktra import create_topology
-
 
 logging.basicConfig(level=logging.DEBUG,
                     filename='./logs/CodeCraft-2019.log',
@@ -53,20 +51,7 @@ def main():
     # from utils import networkx
     # G = networkx(topologyDict, plot=True)
 
-    # 2.2 根据 Cross 生成每个信号灯对象
-    # 可以删除cross_dict对象了
-    crosses = {}
-    for item in crosses_dict.keys():
-        cross_ = Cross(cross_id=crosses_dict[item]['id'],
-                       road1=crosses_dict[item]['road1'],
-                       road2=crosses_dict[item]['road2'],
-                       road3=crosses_dict[item]['road3'],
-                       road4=crosses_dict[item]['road4'])
-        crosses[cross_.crossID] = cross_
-    # 删除变量，释放内存
-    del crosses_dict
-
-    # 2.3 生成车辆对象
+    # 2.2 生成车辆对象
     cars = {}
     for item in cars_dict.keys():
         car_ = Car(car_id=cars_dict[item]['id'],
@@ -79,7 +64,7 @@ def main():
     # 删除变量，释放内存
     del cars_dict
 
-    # 2.4 生成道路对象
+    # 2.3 生成道路对象
     roads = {}
     for item in roads_dict.keys():
         road_ = Road(road_id=roads_dict[item]['id'],
@@ -101,6 +86,20 @@ def main():
     # 删除变量，释放内存
     del roads_dict
 
+    # 2.4 根据 Cross 生成每个信号灯对象
+    # 可以删除cross_dict对象了
+    crosses = {}
+    for item in crosses_dict.keys():
+        cross_ = Cross(cross_id=crosses_dict[item]['id'],
+                       road1=crosses_dict[item]['road1'],
+                       road2=crosses_dict[item]['road2'],
+                       road3=crosses_dict[item]['road3'],
+                       road4=crosses_dict[item]['road4'],
+                       road_dict=roads)
+        crosses[cross_.crossID] = cross_
+    # 删除变量，释放内存
+    del crosses_dict
+
     # 将世界地图和调度任务送入调度中心，由调度中心进行演算，得到安排结果
     manager = trafficManager(topologyDict=topologyDict,
                              crossDict=crosses,
@@ -117,12 +116,14 @@ def main():
     with open(str(answer_path), 'w') as f:
         # result.keys().sort()    # 看有没有排序要求了
         for carID in result.keys():
-            text = '(' + str(carID) + ", " + str(result[carID]['startTime']) + ", " + ", ".join(str(x) for x in result[carID]['roads']) + ")" + "\n"
+            text = '(' + str(carID) + ", " + str(result[carID]['startTime']) + ", " + ", ".join(
+                str(x) for x in result[carID]['roads']) + ")" + "\n"
             f.write(text)
 
 
 if __name__ == "__main__":
     import time
+
     start = time.clock()
 
     main()

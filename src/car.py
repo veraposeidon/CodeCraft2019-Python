@@ -2,7 +2,6 @@
 
 from enum import Enum, unique
 from dijsktra import dijsktra, Graph
-from copy import deepcopy
 
 
 @unique
@@ -169,19 +168,23 @@ class Car:
 
     def is_car_way_home(self):
         """
-        判断车辆是否处在连接终点的道路上
+        判断车辆前方是否终点即可
         :return:
         """
-        road_id = self.carGPS['roadID']
-
-        last = self.strategy[-2]
-        end = self.strategy[-1]
-        for item in self.map[last]:
-            if item['end'] == end:
-                if item['road_id'] == road_id:
-                    return True
-
-        return False
+        # road_id = self.carGPS['roadID']
+        #
+        # last = self.strategy[-2]
+        # end = self.strategy[-1]
+        # for item in self.map[last]:
+        #     if item['end'] == end:
+        #         if item['road_id'] == road_id:
+        #             return True
+        # 换种思路,下个路口是重点则表示要到家了
+        next_cross = self.carGPS['next']
+        if next_cross == self.carTo:
+            return True
+        else:
+            return False
 
     def next_road_name(self, cross_id):
         """
@@ -189,8 +192,9 @@ class Car:
         :param cross_id:
         :return:
         """
-        if cross_id is self.carTo:   # 到终点
+        if cross_id == self.carTo:   # 将到终点
             return None
+
         index = self.strategy.index(cross_id)    # 下一个路口
         next_cross = self.strategy[index+1]
 
@@ -211,7 +215,7 @@ class Car:
 
         # 判断走没有所在的路，要是有，就重新更新下Graph,重新找最优路径
         if this_cross == self.strategy[1]:
-            # 原有权重
+            # 深拷贝效率低，原有权重替换即可
             origin_weight = graph.weights[(next_cross,this_cross)]
             # 更换权重
             graph.weights[(next_cross, this_cross)] = 1000
@@ -219,12 +223,3 @@ class Car:
             self.strategy = dijsktra(graph, next_cross, self.carTo)
             # 替换会原有权重
             graph.weights[(next_cross, this_cross)] = origin_weight
-
-            # # 深拷贝，避免影响原有拓扑
-            # new_graph = deepcopy(graph)
-            # # 加大权重
-            # new_graph.weights[(next_cross,this_cross)] = 1000
-            # # 下一路口到家的路
-            # self.strategy = dijsktra(new_graph, next_cross, self.carTo)
-            # # 节省内存
-            # del new_graph
