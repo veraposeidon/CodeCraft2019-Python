@@ -63,7 +63,7 @@ class Road(object):
         assert car_pos == grid
 
         speed = min(car_obj.carSpeed, self.roadSpeedLimit)  # 获取车速
-        len_remain = self.roadLength - (car_pos + 1)  # 道路剩余长度
+        len_remain = (self.roadLength-1) - car_pos  # 道路剩余长度
 
         # 准备出路口
         if len_remain < speed:
