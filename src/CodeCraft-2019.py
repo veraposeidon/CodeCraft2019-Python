@@ -5,7 +5,7 @@ import sys
 
 
 from utils import read_road, read_cross, read_car
-from car import car
+from car import Car
 from cross import cross
 from road import road
 
@@ -69,11 +69,11 @@ def main():
     # 2.3 生成车辆对象
     cars = {}
     for item in cars_dict.keys():
-        car_ = car(id=cars_dict[item]['id'],
+        car_ = Car(car_id=cars_dict[item]['id'],
                    origin=cars_dict[item]['from'],
                    destination=cars_dict[item]['to'],
                    speed=cars_dict[item]['speed'],
-                   plantime=cars_dict[item]['planTime'],
+                   plan_time=cars_dict[item]['planTime'],
                    topology=topologyDict)
         cars[car_.carID] = car_
     # 删除变量，释放内存

@@ -89,7 +89,7 @@ class trafficManager:
                     graph = self.getcurrentGraph(self.roadDict)
                     # 更新在路上的车的路线。
                     for carID in carOnRoadList:
-                        self.carDict[carID].updateNewStratogy(graph)
+                        self.carDict[carID].update_new_strategy(graph)
 
                 if cross_loop_alert > self.LOOPS_TO_DEAD_CLOCK:
                     print("路口循环调度次数太多进行警告")
@@ -128,7 +128,7 @@ class trafficManager:
     def getResult(self):
         for key in self.carDict.keys():
             self.result[self.carDict[key].carID] = {'startTime': self.carDict[key].startTime,
-                                                    'roads': self.carDict[key].passby}
+                                                    'roads': self.carDict[key].passed_by}
         return self.result
 
     def getcurrentGraph(self, road_dict):
@@ -151,7 +151,7 @@ class trafficManager:
     def isTaskCompleted(self):
         for carid in self.carDict.keys():
             car = self.carDict[carid]
-            if not car.isEnded():
+            if not car.is_ended():
                 return False
         return True
 
@@ -165,11 +165,11 @@ class trafficManager:
         carSucceed = 0
         for carid in self.carDict.keys():
             car = self.carDict[carid]
-            if car.iscarWaiting_home():
+            if car.is_car_waiting_home():
                 carAtHomeList.append(car.carID)
-            elif car.iscarOnRoad():
+            elif car.is_car_on_road():
                 carOnRoadList.append(car.carID)
-            elif car.isEnded():
+            elif car.is_ended():
                 carSucceed += 1
 
         # carAtHomeList.sort(reverse=False)
@@ -185,6 +185,6 @@ class trafficManager:
         :return:
         """
         for key in self.carDict.keys():
-            if self.carDict[key].iscarWaiting():
+            if self.carDict[key].is_car_waiting():
                 return True
         return False
