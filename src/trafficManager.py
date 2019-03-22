@@ -74,6 +74,13 @@ class trafficManager:
             # 3. 更新所有路口（需要调度多轮确保所有车辆完成终止态）
             # 3.1 对路口进行排序
             crossList = sorted(self.crossDict.keys())
+
+            # 重置路口的完成标记
+            for crossID in crossList:
+                cross = self.crossDict[crossID]
+                cross.reset_end_flag()
+
+            # 遍历次数统计
             cross_loop_alert = 0
 
             # 3.2 这个While 是刚需，必须要完成道路所有车辆的调度才能进行下一个时间片
@@ -81,7 +88,8 @@ class trafficManager:
                 # 调度一轮所有路口
                 for crossID in crossList:
                     cross = self.crossDict[crossID]
-                    cross.update_cross(self.roadDict, self.carDict)  # 道路和车辆对象送入
+                    if not cross.if_cross_ended():
+                        cross.update_cross(self.roadDict, self.carDict)  # 道路和车辆对象送入
 
                 cross_loop_alert += 1
                 if cross_loop_alert >= self.LOOPS_TO_UPDATE:

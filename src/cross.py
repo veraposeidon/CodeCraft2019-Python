@@ -5,10 +5,11 @@ from copy import deepcopy
 class Cross(object):
     """
     路口信息
+    TODO: loops_every_cross时间够用1，不够用2-3
     """
 
     def __init__(self, cross_id, road1, road2, road3, road4, road_dict,
-                 loops_every_cross=3):
+                 loops_every_cross=1):
         self.crossID = cross_id
         self.roads = [road1, road2, road3, road4]  # 道路分布
         # 本路口道路调度优先级    id表示
@@ -17,6 +18,24 @@ class Cross(object):
         self.roads_prior_name = [self.find_road_name_to_cross(road_dict, r_id) for r_id in self.roads_prior_id]
         self.roads_prior_name = [o for o in self.roads_prior_name if o is not None]  # 去除单向道路
         self.LOOPS_EVERY_CROSS = loops_every_cross  # 路口调度循环次数
+        self.nothing2do = False
+
+    def reset_end_flag(self):
+        """
+        重置路口完成标记
+        :return:
+        """
+        self.nothing2do = False
+
+    def if_cross_ended(self):
+        """
+        查询路口是否完成
+        :return:
+        """
+        if self.nothing2do:
+            return True
+        else:
+            return False
 
     def get_road_priors(self):
         """
@@ -52,8 +71,12 @@ class Cross(object):
         for i in range(self.LOOPS_EVERY_CROSS):
             # 获取待调度道路和车辆信息
             next_roads = self.get_first_order_info(road_dict, car_dict)
-            road_priors = sorted(next_roads.keys())
+            # 如果没有待调度车辆，则判断该路口完成
+            if len(next_roads) == 0:
+                self.nothing2do = True
+                return
 
+            road_priors = sorted(next_roads.keys())
             # 2. 根据优先级，分别判断每个路口是否满足出路口（路口规则）
             for roadID in road_priors:
                 last_car = next_roads[roadID]['carO']  # 待调度车辆
