@@ -57,7 +57,6 @@ class Cross(object):
             # 2. 根据优先级，分别判断每个路口是否满足出路口（路口规则）
             for roadID in road_priors:
                 last_car = next_roads[roadID]['carO']  # 待调度车辆
-
                 while roadID in next_roads:  # 确保路口的每一轮调度都最大化道路的运输能力，除非转弯顺序不允许或者没有待转弯车辆了。
 
                     # 对方向进行判断
@@ -82,18 +81,10 @@ class Cross(object):
                     next_road = road_dict[next_roads[roadID]['next_road_name']]
                     self.move_car_across(car_o, this_road, next_road, car_dict)
 
-                    # # 版本旧
-                    # # 更新道路第一优先级车辆
-                    # next_roads = self.get_first_order_info(road_dict, car_dict)
-                    # # 判断更新后的第一辆车还是不是之前的
-                    # if roadID in next_roads:
-                    #     this_car = next_roads[roadID]['carO']
-                    #     if this_car is last_car:
-                    #         break  # 还是上一辆，说明没动，跳出，调度下一道路
-                    #     else:
-                    #         last_car = this_car
+                    # 调度之后除去道路第一优先序车辆记录
+                    this_road.first_order_car = None
 
-                    # 优化版本
+                    # 只更新该道路的优先序车辆
                     road_id, first_info = self.get_road_first_order_info(next_roads[roadID]['road_name'], road_dict,
                                                                          car_dict)
                     # 该道路还有待调度车辆
@@ -130,27 +121,28 @@ class Cross(object):
             return 'L'
 
     @staticmethod
-    def has_straight_to_conflict(roads_map, target_road_ID):
+    def has_straight_to_conflict(roads_map, target_road__i_d):
         """
         判断有无直行进入目标车道的车辆发生冲突
-        :param road_name:
+        :param target_road__i_d:
+        :param roads_map:
         :return:
         """
         for key in roads_map.keys():
-            if roads_map[key]['next_road_id'] == target_road_ID and roads_map[key]['direction'] == 'D':
+            if roads_map[key]['next_road_id'] == target_road__i_d and roads_map[key]['direction'] == 'D':
                 return True
         return False
 
     @staticmethod
-    def has_straight_left_to_conflict(roads_map, target_road_ID):
+    def has_straight_left_to_conflict(roads_map, target_road__i_d):
         """
         判断有无直行或左转进入目标车道的车辆发生冲突
         :param roads_map:
-        :param target_road_ID:
+        :param target_road__i_d:
         :return:
         """
         for key in roads_map.keys():
-            if roads_map[key]['next_road_id'] == target_road_ID and (
+            if roads_map[key]['next_road_id'] == target_road__i_d and (
                     roads_map[key]['direction'] == 'D' or roads_map[key]['direction'] == 'L'):
                 return True
         return False
@@ -165,48 +157,11 @@ class Cross(object):
         road_prior = self.roads_prior_name.copy()
         next_roads = dict()
 
-        # new version
         for road_name in road_prior:
             road_id, first_info = self.get_road_first_order_info(road_name, road_dict, car_dict)
             if road_id is not None:
                 next_roads[road_id] = first_info
         return next_roads
-
-        # # older version
-        # for road_name in road_prior[:]:
-        #     while True:
-        #         car_obj = road_dict[road_name].get_first_order_car(car_dict)
-        #         if car_obj is None:  # 当前道路没有待出路口车辆
-        #             road_prior.remove(road_name)  # 当前道路不参与调度
-        #             break   # 换道
-        #
-        #         else:  # 当前道路有待出路口车辆,
-        #             if car_obj.next_road_name(self.crossID) is None:  # 是否下一站到家
-        #                 # 车辆回家
-        #                 road_dict[road_name].move_car_home(car_obj)
-        #                 # 更新车道后方信息
-        #                 road_dict[road_name].update_channel(car_obj.carGPS['channel'], car_dict)
-        #                 continue  # 继续更新本条道路的第一优先级
-        #
-        #             else:
-        #                 # 车辆下一条路的名称
-        #                 next_road_name = car_obj.next_road_name(self.crossID)
-        #
-        #                 # 获取道路ID
-        #                 road_now_id = road_dict[road_name].roadID
-        #                 road_next_id = road_dict[next_road_name].roadID
-        #                 assert road_now_id != road_next_id  # 聊胜于无  # 出现相同是因为计划路线出现了掉头，这个是不允许的。要在车辆更新路线时进行否定
-        #
-        #                 # 获取方向,填入信息
-        #                 direction = self.get_direction(road_now_id, road_next_id)
-        #                 next_roads[road_now_id] = {'carO': car_obj,
-        #                                            'road_name': road_name,
-        #                                            'next_road_id': road_next_id,
-        #                                            'next_road_name': next_road_name,
-        #                                            'direction': direction}
-        #                 break  # 换道
-        # return next_roads
-
 
     def get_road_first_order_info(self, road_name, road_dict, car_dict):
         """
@@ -229,6 +184,8 @@ class Cross(object):
                     road_dict[road_name].move_car_home(car_obj)
                     # 更新车道后方信息
                     road_dict[road_name].update_channel(car_obj.carGPS['channel'], car_dict)
+                    # 除去道路第一优先序车辆记录
+                    road_dict[road_name].first_order_car = None
                     continue  # 继续更新本条道路的第一优先级
                 else:
                     # 不回家车辆的下一条路名称
@@ -248,111 +205,113 @@ class Cross(object):
                                         'direction': direction}
                     return road_now_id, first_order_info
 
-    def move_car_across(self, carO, thisRoad, nextRoad, car_dict):
+    @staticmethod
+    def move_car_across(car_obj, this_road, next_road, car_dict):
         """
         跨路口移动车辆，较为复杂, 需要耐心
-        TODO: 假设这些待转车辆前方都没有阻挡的车的。
+        可论证： 这些待转车辆前方都没有阻挡的车的。
         假设前方的车 已经 end 了，后方的车会更新到end
         假设前方的车 在waiting， 后方的车轮不到第一优先级。
-        :param carO: 车辆对象
-        :param thisRoad: 当前道路对象
-        :param nextRoad: 目标道路对象
+        :param car_dict:
+        :param car_obj: 车辆对象
+        :param this_road: 当前道路对象
+        :param next_road: 目标道路对象
         :return:
         """
         # 1. 找到待进入车道：
-        next_channel, next_pos = nextRoad.get_checkin_place()
+        next_channel, next_pos = next_road.get_checkin_place()
 
         # 前方道路堵住
         # 前方道路堵住需要探讨（前方道路的车是终结态还是等待态，只要最后有车等待，那就可以等待，如果最后一排的车全为终结，那就终结）
         if next_channel is None:  # 表示下一道路全满
             # print("真堵车了")
             # 判断下一道路最后一辆车的状态
-            if nextRoad.last_row_are_waiting(car_dict):  # 如果下一条道路有车在等待,则本车也只能等待
-                carO.change2waiting_out()  # 后面的车不需要动
+            if next_road.last_row_are_waiting(car_dict):  # 如果下一条道路有车在等待,则本车也只能等待
+                car_obj.change2waiting_out()  # 后面的车不需要动
             else:  # 前车终止态，本车运行到道路前方
-                new_pos = thisRoad.roadLength - 1  # 注意下标
-                new_channel = carO.carGPS['channel']
+                new_pos = this_road.roadLength - 1  # 注意下标
+                new_channel = car_obj.carGPS['channel']
 
                 # 判断位置是否为相同
-                if carO.carGPS['pos'] == new_pos:
-                    carO.change2end()  # 保持不动
+                if car_obj.carGPS['pos'] == new_pos:
+                    car_obj.change2end()  # 保持不动
                 else:
                     # 注册新位置
-                    thisRoad.roadStatus[new_channel, new_pos] = carO.carID
+                    this_road.roadStatus[new_channel, new_pos] = car_obj.carID
                     # 抹除旧位置
-                    thisRoad.roadStatus[new_channel, carO.carGPS['pos']] = -1  # 将车辆所在位置置空
+                    this_road.roadStatus[new_channel, car_obj.carGPS['pos']] = -1  # 将车辆所在位置置空
                     # 更新到车辆信息
-                    carO.mark_new_pos(road_id=thisRoad.roadID, channel=new_channel, pos=new_pos,
-                                      this_cross=thisRoad.roadOrigin, next_cross=thisRoad.roadDest)
+                    car_obj.mark_new_pos(road_id=this_road.roadID, channel=new_channel, pos=new_pos,
+                                         this_cross=this_road.roadOrigin, next_cross=this_road.roadDest)
                     # 标记车辆为EndState
-                    carO.change2end()
+                    car_obj.change2end()
 
                 # 更新后面车道的车辆
-                thisRoad.update_channel(new_channel, car_dict)
+                this_road.update_channel(new_channel, car_dict)
             return
 
         # 前方道路没堵住
-        assert thisRoad.roadStatus[carO.carGPS['channel'], carO.carGPS['pos']] == carO.carID  # 聊胜于无的断言
+        assert this_road.roadStatus[car_obj.carGPS['channel'], car_obj.carGPS['pos']] == car_obj.carID  # 聊胜于无的断言
 
-        remain_dis = (thisRoad.roadLength - 1) - carO.carGPS['pos']  # 上端剩余距离
-        speed = min(carO.carSpeed, nextRoad.roadSpeedLimit)
+        remain_dis = (this_road.roadLength - 1) - car_obj.carGPS['pos']  # 上端剩余距离
+        speed = min(car_obj.carSpeed, next_road.roadSpeedLimit)
         real_dis = max(speed - remain_dis, 0)
         if real_dis == 0:  # 表示不支持转入下一道路，现在调度到本车道终点处，不变channel
-            new_pos = thisRoad.roadLength - 1  # 注意下标
-            old_channel = carO.carGPS['channel']
-            old_pos = carO.carGPS['pos']
+            new_pos = this_road.roadLength - 1  # 注意下标
+            old_channel = car_obj.carGPS['channel']
+            old_pos = car_obj.carGPS['pos']
 
             # 判断位置是否为相同
-            if carO.carGPS['pos'] == new_pos:
-                carO.change2end()  # 保持不动
+            if car_obj.carGPS['pos'] == new_pos:
+                car_obj.change2end()  # 保持不动
             else:
                 # 注册新位置
-                thisRoad.roadStatus[old_channel, new_pos] = carO.carID
+                this_road.roadStatus[old_channel, new_pos] = car_obj.carID
                 # 抹除旧位置
-                thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
+                this_road.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                carO.mark_new_pos(road_id=thisRoad.roadID, channel=old_channel, pos=new_pos,
-                                  this_cross=thisRoad.roadOrigin, next_cross=thisRoad.roadDest)
+                car_obj.mark_new_pos(road_id=this_road.roadID, channel=old_channel, pos=new_pos,
+                                     this_cross=this_road.roadOrigin, next_cross=this_road.roadDest)
                 # 标记车辆为EndState
-                carO.change2end()
+                car_obj.change2end()
 
             # 更新后面车道的车辆
-            thisRoad.update_channel(old_channel, car_dict)
+            this_road.update_channel(old_channel, car_dict)
             return
 
         else:  # 有机会调度到下一道路# 三种情况，够长，直接到位；前方有车，endstate，追尾；前方有车，waiting,不动waiting。
             new_pos = real_dis - 1  # 注意下标
-            old_channel = carO.carGPS['channel']
-            old_pos = carO.carGPS['pos']
+            old_channel = car_obj.carGPS['channel']
+            old_pos = car_obj.carGPS['pos']
 
             # 判断前方有无车辆
-            has_car, front_pos, front_id = nextRoad.has_car(next_channel, 0, new_pos + 1)
+            has_car, front_pos, front_id = next_road.has_car(next_channel, 0, new_pos + 1)
             if has_car:  # 前方有车
                 if car_dict[front_id].is_car_waiting():  # 前车正在等待
-                    carO.change2waiting_out()  # 标记为等待出路口
+                    car_obj.change2waiting_out()  # 标记为等待出路口
                 else:  # 前车结束
                     dis = front_pos
                     assert dis >= 1  # 要是距离短于1就见鬼了
                     new_pos = front_pos - 1  # 还能前进一段，新位置在前车屁股
                     # 注册新位置
-                    nextRoad.roadStatus[next_channel, new_pos] = carO.carID
+                    next_road.roadStatus[next_channel, new_pos] = car_obj.carID
                     # 抹除旧位置
-                    thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
+                    this_road.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                     # 更新到车辆信息
-                    carO.mark_new_pos(road_id=nextRoad.roadID, channel=next_channel, pos=new_pos,
-                                      this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
+                    car_obj.mark_new_pos(road_id=next_road.roadID, channel=next_channel, pos=new_pos,
+                                         this_cross=next_road.roadOrigin, next_cross=next_road.roadDest)
                     # 标记车辆为EndState
-                    carO.change2end()
+                    car_obj.change2end()
             else:
                 # 注册新位置
-                nextRoad.roadStatus[next_channel, new_pos] = carO.carID
+                next_road.roadStatus[next_channel, new_pos] = car_obj.carID
                 # 抹除旧位置
-                thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
+                this_road.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                carO.mark_new_pos(road_id=nextRoad.roadID, channel=next_channel, pos=new_pos,
-                                  this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
+                car_obj.mark_new_pos(road_id=next_road.roadID, channel=next_channel, pos=new_pos,
+                                     this_cross=next_road.roadOrigin, next_cross=next_road.roadDest)
                 # 标记车辆为EndState
-                carO.change2end()
+                car_obj.change2end()
             # 更新后方车道
-            thisRoad.update_channel(old_channel, car_dict)
+            this_road.update_channel(old_channel, car_dict)
             return

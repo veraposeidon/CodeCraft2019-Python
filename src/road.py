@@ -15,6 +15,7 @@ class Road(object):
         self.roadOrigin = origin  # 道路起点
         self.roadDest = dest  # 道路终点
         self.roadStatus = self.initialize_road()  # 道路详情
+        self.first_order_car = None
 
     def initialize_road(self):
         """
@@ -202,14 +203,19 @@ class Road(object):
         此处效率要优化
         :return:
         """
+        if self.first_order_car is not None:
+            return self.first_order_car
+
         # 根据优先序列遍历车辆
         for grid in range(self.roadLength - 1, -1, -1):
             for channel in range(self.roadChannel):
                 if self.roadStatus[channel, grid] != -1:
                     # 获取车对象
                     car = car_dict[self.roadStatus[channel, grid]]
+                    # TODO: 优化这些判断
                     if car.is_car_waiting_out():
-                        return car
+                        self.first_order_car = car  # 记录第一优先序车
+                        return self.first_order_car
 
         # 如果没有则返回NONE
         return None
