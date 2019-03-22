@@ -63,8 +63,8 @@ class Car:
         self.carGPS['now'] = this_cross
         self.carGPS['next'] = next_cross
 
-        # 标记状态,车辆调度结束
-        self.carStatus = CarStatus.ON_ROAD_STATE_END
+        # # 标记状态,车辆调度结束
+        # self.carStatus = CarStatus.ON_ROAD_STATE_END
 
         # 记录经过路段
         # 重点注意：可能会重复出现路线，因此应当与最后一个路进行比较即可

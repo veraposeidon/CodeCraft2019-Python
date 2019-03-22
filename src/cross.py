@@ -174,7 +174,7 @@ class cross(object):
         :return:
         """
         # 1. 找到待进入车道：
-        next_channel, next_pos = nextRoad.getcheckInPlace()
+        next_channel, next_pos = nextRoad.get_checkin_place()
 
         # 前方道路堵住
         # 前方道路堵住需要探讨（前方道路的车是终结态还是等待态，只要最后有车等待，那就可以等待，如果最后一排的车全为终结，那就终结）

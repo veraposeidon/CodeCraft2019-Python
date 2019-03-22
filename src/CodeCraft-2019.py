@@ -7,7 +7,7 @@ import sys
 from utils import read_road, read_cross, read_car
 from car import Car
 from cross import cross
-from road import road
+from road import Road
 
 from trafficManager import trafficManager
 from dijsktra import create_topology
@@ -46,7 +46,7 @@ def main():
 
     # 2. process 调度数据
 
-    # 2.1 根据 road 生成拓扑地图
+    # 2.1 根据 Road 生成拓扑地图
     topologyDict = create_topology(roads_dict)
 
     # # 绘图
@@ -82,18 +82,18 @@ def main():
     # 2.4 生成道路对象
     roads = {}
     for item in roads_dict.keys():
-        road_ = road(id=roads_dict[item]['id'],
+        road_ = Road(road_id=roads_dict[item]['id'],
                      length=roads_dict[item]['length'],
-                     speedlimit=roads_dict[item]['speed'],
+                     speed_limit=roads_dict[item]['speed'],
                      channel=roads_dict[item]['channel'],
                      origin=roads_dict[item]['from'],
                      dest=roads_dict[item]['to'])
         roads[str(road_.roadOrigin) + "_" + str(road_.roadDest)] = road_
 
         if roads_dict[item]['isDuplex'] == 1:
-            road_ = road(id=roads_dict[item]['id'],
+            road_ = Road(road_id=roads_dict[item]['id'],
                          length=roads_dict[item]['length'],
-                         speedlimit=roads_dict[item]['speed'],
+                         speed_limit=roads_dict[item]['speed'],
                          channel=roads_dict[item]['channel'],
                          origin=roads_dict[item]['to'],
                          dest=roads_dict[item]['from'])

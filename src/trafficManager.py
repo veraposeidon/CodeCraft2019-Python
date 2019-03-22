@@ -1,18 +1,18 @@
 # coding:utf-8
 
-from dijsktra import Graph, dijsktra, create_topology, create_graph
+from dijsktra import create_graph
 import random
-random.seed(42)
+random.seed(122)
 
 # 超参数
 # 定义特别大的值则不考虑场上车辆
-CARS_ON_ROAD = 1500
+CARS_ON_ROAD = 1700
 
 # 一次上路车辆 基数     动态上路
-CAR_GET_START_BASE = 50
+CAR_GET_START_BASE = 200
 
 # 路口全部调度多少次重新更新车辆路线
-LOOPS_TO_UPDATE = 3
+LOOPS_TO_UPDATE = 4
 
 # 路口调度多少次直接判为死锁
 LOOPS_TO_DEAD_CLOCK = 100
@@ -114,13 +114,15 @@ class trafficManager:
                 how_many = self.CARS_ON_ROAD - lenOnRoad
                 # how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 1.0))
 
+                count_start = 0
                 for id in carAtHomeList[:how_many]:
                     carObj = self.carDict[id]
                     road_name = carObj.try_start(graph, self.TIME)
                     if road_name is not None:
-                        self.roadDict[road_name].try_on_road(carObj)
+                        if self.roadDict[road_name].try_on_road(carObj):
+                            count_start += 1
 
-                print(len(carAtHomeList),self.CARS_ON_ROAD, lenOnRoad, succed)
+                print(count_start, len(carAtHomeList), self.CARS_ON_ROAD, lenOnRoad, succed)
 
         print("Tasks Completed! and Time cost: " + str(self.TIME))
 
