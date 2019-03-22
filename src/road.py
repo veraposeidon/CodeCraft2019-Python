@@ -227,7 +227,7 @@ class road(object):
         car_pos = carO.carLocation['pos']
         assert self.roadStatus[car_channel, car_pos] is car_id  # 直接断言 车辆所处位置正确
 
-        car.change2success()  # 更改车辆状态
+        carO.change2success()  # 更改车辆状态
         self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
         # print(str(carO.carID) + " 到家")
 

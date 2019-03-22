@@ -10,7 +10,7 @@ from cross import cross
 from road import road
 
 from trafficManager import trafficManager
-from dijsktra import createTopology
+from dijsktra import create_topology
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -47,7 +47,7 @@ def main():
     # 2. process 调度数据
 
     # 2.1 根据 road 生成拓扑地图
-    topologyDict = createTopology(roads_dict)
+    topologyDict = create_topology(roads_dict)
 
     # # 绘图
     # from utils import networkx

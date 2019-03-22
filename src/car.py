@@ -140,7 +140,7 @@ class car:
         end = self.strategy[-1]
         for item in self.map[last]:
             if item['end'] == end:
-                if item['roadid'] == roadID:
+                if item['road_id'] == roadID:
                     return True
 
         return False
