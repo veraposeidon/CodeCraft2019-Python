@@ -6,7 +6,7 @@ import sys
 
 from utils import read_road, read_cross, read_car
 from car import Car
-from cross import cross
+from cross import Cross
 from road import Road
 
 from trafficManager import trafficManager
@@ -53,11 +53,11 @@ def main():
     # from utils import networkx
     # G = networkx(topologyDict, plot=True)
 
-    # 2.2 根据 cross 生成每个信号灯对象
+    # 2.2 根据 Cross 生成每个信号灯对象
     # 可以删除cross_dict对象了
     crosses = {}
     for item in crosses_dict.keys():
-        cross_ = cross(id=crosses_dict[item]['id'],
+        cross_ = Cross(cross_id=crosses_dict[item]['id'],
                        road1=crosses_dict[item]['road1'],
                        road2=crosses_dict[item]['road2'],
                        road3=crosses_dict[item]['road3'],
@@ -124,7 +124,6 @@ def main():
 if __name__ == "__main__":
     import time
     start = time.clock()
-    print(start)
 
     main()
 

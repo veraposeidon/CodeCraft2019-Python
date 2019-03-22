@@ -211,11 +211,20 @@ class Car:
 
         # 判断走没有所在的路，要是有，就重新更新下Graph,重新找最优路径
         if this_cross == self.strategy[1]:
-            # 深拷贝，避免影响原有拓扑
-            new_graph = deepcopy(graph)
-            # 加大权重
-            new_graph.weights[(next_cross,this_cross)] = 1000
-            # 下一路口到家的路
-            self.strategy = dijsktra(new_graph, next_cross, self.carTo)
-            # 节省内存
-            del new_graph
+            # 原有权重
+            origin_weight = graph.weights[(next_cross,this_cross)]
+            # 更换权重
+            graph.weights[(next_cross, this_cross)] = 1000
+            # 重新规划路线
+            self.strategy = dijsktra(graph, next_cross, self.carTo)
+            # 替换会原有权重
+            graph.weights[(next_cross, this_cross)] = origin_weight
+
+            # # 深拷贝，避免影响原有拓扑
+            # new_graph = deepcopy(graph)
+            # # 加大权重
+            # new_graph.weights[(next_cross,this_cross)] = 1000
+            # # 下一路口到家的路
+            # self.strategy = dijsktra(new_graph, next_cross, self.carTo)
+            # # 节省内存
+            # del new_graph

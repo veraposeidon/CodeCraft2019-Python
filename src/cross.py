@@ -1,48 +1,60 @@
 # coding:utf-8
+from copy import deepcopy
 
-LOOPS_EVERY_CROSS = 5
 
-# 交叉路口对象
-# 还可以在此处安排优先级
-# 相当于交叉路口安排一个调度员
-# 对于一条道路，有多少车要准备出去，有多少车要准备近来。出去多少长度，近来多少长度
-# 也就是说，我认为，调度的顺序应该是计算预测下一步的操作，进行判断，遍历完之后，再统一更新状态。
-class cross(object):
-    def __init__(self, id, road1, road2, road3, road4):
-        self.crossID = id
+class Cross(object):
+    """
+    路口信息
+    """
+
+    def __init__(self, cross_id, road1, road2, road3, road4,
+                 loops_every_cross=1):
+        self.crossID = cross_id
         self.roads = [road1, road2, road3, road4]  # 道路分布
-        self.roads_prior = self.get_priors()  # 道路调度优先级
+        self.roads_prior = self.get_road_priors()  # 道路调度优先级
+        self.LOOPS_EVERY_CROSS = loops_every_cross  # 路口调度循环次数
 
-    def get_priors(self):
-        roadPrior = self.roads.copy()  # 此处要用深拷贝
-        roadPrior.sort()  # 升序
-        roadPrior = [x for x in roadPrior if x != -1]  # 去掉-1
-        return roadPrior
+    def get_road_priors(self):
+        """
+        路口调度道路的优先级，按照id升序
+        :return:
+        """
+        road_prior = deepcopy(self.roads)  # 此处要用深拷贝,避免影响原有分布
+        road_prior.sort()  # 升序
+        road_prior = [x for x in road_prior if x != -1]  # 去掉-1
+        return road_prior
 
     def update_cross(self, road_dict, car_dict):
-        # 2. 重复调度每个道路（处理每个道路的第一优先级），应该调度N遍即可。实在完不成就只能等其他路口调度完了再回来。
-        for i in range(LOOPS_EVERY_CROSS):
-            # 获取待调度道路信息
+        """
+        调度路口多次。
+        需要注意，单一路口调度不一定能够完成，需要配合其他路口调度。
+        所以多次调度之后即可跳出，调度无法完成的车辆会在下次遍历到该路口时继续调度。
+        :param road_dict:
+        :param car_dict:
+        :return:
+        """
+        for i in range(self.LOOPS_EVERY_CROSS):
+            # 获取待调度道路和车辆信息
             next_roads = self.get_first_order_info(road_dict, car_dict)
             road_priors = sorted(next_roads.keys())
 
             # 2. 根据优先级，分别判断每个路口是否满足出路口（路口规则）
             for roadID in road_priors:
-                last_car = next_roads[roadID]['carO']   # 待调度车辆
+                last_car = next_roads[roadID]['carO']  # 待调度车辆
 
-                while roadID in next_roads:     # 确保路口的每一轮调度都最大化道路的运输能力，除非转弯顺序不允许或者没有待转弯车辆了。
+                while roadID in next_roads:  # 确保路口的每一轮调度都最大化道路的运输能力，除非转弯顺序不允许或者没有待转弯车辆了。
 
                     # 对方向进行判断
                     dirct = next_roads[roadID]['direction']
-                    if dirct is "D":    # 直行优先
+                    if dirct is "D":  # 直行优先
                         pass
                     elif dirct is "L":  # 左转需要判断有无直行到目标道路车辆
                         if self.has_straight_to_conflict(next_roads, next_roads[roadID]['next_road_id']):  # 有直行车辆，跳过
-                            break   # 跳出while 调度下一道路
+                            break  # 跳出while 调度下一道路
                     elif dirct is "R":  # 右转需要哦安短有无直行或左转到目标道路车辆
                         if self.has_straight_left_to_conflict(next_roads,
-                                                          next_roads[roadID]['next_road_id']):  # 有直行或左转车辆，跳过
-                            break   # 跳出while 调度下一道路
+                                                              next_roads[roadID]['next_road_id']):  # 有直行或左转车辆，跳过
+                            break  # 跳出while 调度下一道路
 
                     # 调度车辆
                     carO = next_roads[roadID]['carO']
@@ -50,13 +62,13 @@ class cross(object):
                     nextRoad = road_dict[next_roads[roadID]['next_road_name']]
                     self.move_car_across(carO, thisRoad, nextRoad, car_dict)
 
-                    next_roads = self.get_first_order_info(road_dict, car_dict)     # 获取新的第一优先级的信息
+                    next_roads = self.get_first_order_info(road_dict, car_dict)  # 获取新的第一优先级的信息
 
                     # 判断更新后的优先车辆是否没动
                     if roadID in next_roads:
                         this_car = next_roads[roadID]['carO']
                         if this_car == last_car:
-                            break   # 跳出，调度下一道路
+                            break  # 跳出，调度下一道路
                         else:
                             last_car = this_car
 
@@ -108,19 +120,21 @@ class cross(object):
 
     def get_first_order_info(self, road_dict, car_dict):
         """
-        更新获取第一优先级车辆信息，如果第一优先级的车是回家的车，就直接回家，不参与
+        获取第一优先级车辆信息。
+        :param road_dict:
+        :param car_dict:
         :return:
         """
-        roadPrior = [self.find_road_name_to_cross(road_dict, id) for id in self.roads_prior]
-        roadPrior = [o for o in roadPrior if o is not None]  # 单向道路会产生None
+        road_prior = [self.find_road_name_to_cross(road_dict, r_id) for r_id in self.roads_prior]
+        road_prior = [o for o in road_prior if o is not None]  # 单向道路会产生None
 
         next_roads = dict()
 
-        for road_name in roadPrior[:]:
+        for road_name in road_prior[:]:
             while True:
                 carO = road_dict[road_name].get_first_order_car(car_dict)
                 if carO is None:  # 当前道路没有待出路口车辆
-                    roadPrior.remove(road_name)  # 当前道路不参与调度
+                    road_prior.remove(road_name)  # 当前道路不参与调度
                     break
 
                 else:  # 当前道路有待出路口车辆,
@@ -150,15 +164,15 @@ class cross(object):
                         break  # 换道
         return next_roads
 
-    def find_road_name_to_cross(self, road_dict, road_ID):
+    def find_road_name_to_cross(self, road_dict, road_id):
         """
         根据道路ID和路口名称找道路
-        :param road_ID:
+        :param road_id:
         :param road_dict:
         :return:
         """
         for key in road_dict.keys():
-            if (road_dict[key].roadID == road_ID) and (road_dict[key].roadDest == self.crossID):
+            if (road_dict[key].roadID == road_id) and (road_dict[key].roadDest == self.crossID):
                 return key
         return None
 
@@ -196,7 +210,8 @@ class cross(object):
                     # 抹除旧位置
                     thisRoad.roadStatus[new_channel, carO.carGPS['pos']] = -1  # 将车辆所在位置置空
                     # 更新到车辆信息
-                    carO.mark_new_pos(road_id=thisRoad.roadID, channel=new_channel, pos=new_pos,this_cross=thisRoad.roadOrigin, next_cross=thisRoad.roadDest)
+                    carO.mark_new_pos(road_id=thisRoad.roadID, channel=new_channel, pos=new_pos,
+                                      this_cross=thisRoad.roadOrigin, next_cross=thisRoad.roadDest)
                     # 标记车辆为EndState
                     carO.change2end()
 
@@ -224,7 +239,8 @@ class cross(object):
                 # 抹除旧位置
                 thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                carO.mark_new_pos(road_id=thisRoad.roadID, channel=old_channel, pos=new_pos,this_cross=thisRoad.roadOrigin,next_cross=thisRoad.roadDest)
+                carO.mark_new_pos(road_id=thisRoad.roadID, channel=old_channel, pos=new_pos,
+                                  this_cross=thisRoad.roadOrigin, next_cross=thisRoad.roadDest)
                 # 标记车辆为EndState
                 carO.change2end()
 
@@ -251,7 +267,8 @@ class cross(object):
                     # 抹除旧位置
                     thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                     # 更新到车辆信息
-                    carO.mark_new_pos(road_id=nextRoad.roadID, channel=next_channel, pos=new_pos, this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
+                    carO.mark_new_pos(road_id=nextRoad.roadID, channel=next_channel, pos=new_pos,
+                                      this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
                     # 标记车辆为EndState
                     carO.change2end()
             else:
@@ -260,7 +277,8 @@ class cross(object):
                 # 抹除旧位置
                 thisRoad.roadStatus[old_channel, old_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                carO.mark_new_pos(road_id=nextRoad.roadID, channel=next_channel, pos=new_pos,this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
+                carO.mark_new_pos(road_id=nextRoad.roadID, channel=next_channel, pos=new_pos,
+                                  this_cross=nextRoad.roadOrigin, next_cross=nextRoad.roadDest)
                 # 标记车辆为EndState
                 carO.change2end()
             # 更新后方车道

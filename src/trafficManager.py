@@ -2,7 +2,7 @@
 
 from dijsktra import create_graph
 import random
-random.seed(122)
+random.seed(7)
 
 # 超参数
 # 定义特别大的值则不考虑场上车辆
