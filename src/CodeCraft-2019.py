@@ -8,7 +8,7 @@ from car import Car
 from cross import Cross
 from road import Road
 
-from trafficManager import trafficManager
+from trafficManager import TrafficManager
 from dijsktra import create_topology
 
 logging.basicConfig(level=logging.DEBUG,
@@ -101,15 +101,15 @@ def main():
     del crosses_dict
 
     # 将世界地图和调度任务送入调度中心，由调度中心进行演算，得到安排结果
-    manager = trafficManager(topologyDict=topologyDict,
-                             crossDict=crosses,
-                             carDict=cars,
-                             roadDict=roads)
+    manager = TrafficManager(topology_dict=topologyDict,
+                             cross_dict=crosses,
+                             car_dict=cars,
+                             road_dict=roads)
     # 进行演算
     manager.inference()
 
     # 得到演算结果
-    result = manager.getResult()
+    result = manager.get_result()
 
     # 3. 调度结果写入输出文件
     # TODO: 写入 answer_path

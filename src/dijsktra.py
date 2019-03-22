@@ -95,6 +95,11 @@ def dijsktra(graph, initial, end):
             return "Route Not Possible"
         # next node is the destination with the lowest weight
         current_node = min(next_destinations, key=lambda k: next_destinations[k][1])
+        # current_node = list(next_destinations.keys())[0]
+        # for key in next_destinations.keys():
+        #     if next_destinations[key][1] < next_destinations[current_node][1]:
+        #         current_node = key
+
 
     # Work back through destinations in shortest path
     path = []
