@@ -1,6 +1,6 @@
 # coding:utf-8
 
-from dijsktra import create_graph
+from dijsktra import Graph, dijsktra, createTopology, createGraph
 import random
 random.seed(42)
 
@@ -88,9 +88,8 @@ class trafficManager:
                     # TODO: 动态更改拓扑图的权重
                     graph = self.getcurrentGraph(self.roadDict)
                     # 更新在路上的车的路线。
-                    # for carID in carOnRoadList:
-                    for carID in carOnRoadList[:int(lenOnRoad / 2)]:
-                        self.carDict[carID].update_new_strategy(graph)
+                    for carID in carOnRoadList:
+                        self.carDict[carID].updateNewStratogy(graph)
 
                 if cross_loop_alert > self.LOOPS_TO_DEAD_CLOCK:
                     print("路口循环调度次数太多进行警告")
@@ -107,7 +106,6 @@ class trafficManager:
             # self.CARS_ON_ROAD = CARS_ON_ROAD / (cross_loop_alert+0.1)
 
             if lenOnRoad < self.CARS_ON_ROAD:       # TODO: 动态更改地图车辆容量
-                # TODO 则按车辆编号由小到大的顺序上路行驶。
                 # TODO: 动态上路数目
                 # if len(carAtHomeList) < self.CARS_ON_ROAD:
                 #     how_many = len(carAtHomeList)
@@ -130,7 +128,7 @@ class trafficManager:
     def getResult(self):
         for key in self.carDict.keys():
             self.result[self.carDict[key].carID] = {'startTime': self.carDict[key].startTime,
-                                                    'roads': self.carDict[key].passed_by}
+                                                    'roads': self.carDict[key].passby}
         return self.result
 
     def getcurrentGraph(self, road_dict):
@@ -145,7 +143,7 @@ class trafficManager:
                 road_weight = road_dict[road_name].get_road_weight()
                 item['weight'] = item['length'] * (1 + road_weight * self.ROAD_WEIGHTS_CALC)
 
-        graph = create_graph(self.topology)
+        graph = createGraph(self.topology)
 
         return graph
 
@@ -153,7 +151,7 @@ class trafficManager:
     def isTaskCompleted(self):
         for carid in self.carDict.keys():
             car = self.carDict[carid]
-            if not car.is_ended():
+            if not car.isEnded():
                 return False
         return True
 
@@ -167,11 +165,11 @@ class trafficManager:
         carSucceed = 0
         for carid in self.carDict.keys():
             car = self.carDict[carid]
-            if car.is_car_waiting_home():
+            if car.iscarWaiting_home():
                 carAtHomeList.append(car.carID)
-            elif car.is_car_on_road():
+            elif car.iscarOnRoad():
                 carOnRoadList.append(car.carID)
-            elif car.is_ended():
+            elif car.isEnded():
                 carSucceed += 1
 
         # carAtHomeList.sort(reverse=False)
@@ -187,6 +185,6 @@ class trafficManager:
         :return:
         """
         for key in self.carDict.keys():
-            if self.carDict[key].is_car_waiting():
+            if self.carDict[key].iscarWaiting():
                 return True
         return False

@@ -72,35 +72,35 @@ def read_car(car_path):
     return cars_dict
 
 
-def networkx(topology_dict, plot=False):
-    """
-    networkx 工具箱
-    :param topology_dict:
-    :param plot:
-    :return:
-    """
-    import networkx as nx
-    g = nx.DiGraph()
-
-    # 节点
-    for node in topology_dict.keys():
-        g.add_node(node)
-
-    # 边
-    edge_label = dict()
-    for item in topology_dict.items():
-        for edge in item[1]:
-            g.add_edge(edge['start'], edge['end'], length=edge['length'], weight=edge['length'])
-            edge_label[(edge['start'], edge['end'])] = str(edge['road_id']) + ":" + str(edge['length'])
-
-    print(g.number_of_nodes())
-    print(g.number_of_edges())
-
-    if plot:
-        import matplotlib.pyplot as plt
-        pos = nx.spring_layout(g, weight='length')
-        nx.draw(g, pos, with_labels=True, edge_color='blue', font_weight='bold', node_size=200, node_color='pink')
-        nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_label)
-        plt.show()
-
-    return g
+# def networkx(topology_dict, plot=False):
+#     """
+#     networkx 工具箱
+#     :param topology_dict:
+#     :param plot:
+#     :return:
+#     """
+#     import networkx as nx
+#     g = nx.DiGraph()
+#
+#     # 节点
+#     for node in topology_dict.keys():
+#         g.add_node(node)
+#
+#     # 边
+#     edge_label = dict()
+#     for item in topology_dict.items():
+#         for edge in item[1]:
+#             g.add_edge(edge['start'], edge['end'], length=edge['length'], weight=edge['length'])
+#             edge_label[(edge['start'], edge['end'])] = str(edge['road_id']) + ":" + str(edge['length'])
+#
+#     print(g.number_of_nodes())
+#     print(g.number_of_edges())
+#
+#     if plot:
+#         import matplotlib.pyplot as plt
+#         pos = nx.spring_layout(g, weight='length')
+#         nx.draw(g, pos, with_labels=True, edge_color='blue', font_weight='bold', node_size=200, node_color='pink')
+#         nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_label)
+#         plt.show()
+#
+#     return g

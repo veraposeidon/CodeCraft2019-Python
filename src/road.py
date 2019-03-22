@@ -1,70 +1,61 @@
 # coding:utf-8
 import numpy as np
-from car import Car
+from car import car
 
 
+# 切记数组下标与实际道路长度
 # 定义道路信息
-class Road(object):
-    def __init__(self, road_id, length, speed_limit, channel, origin, dest):
-        self.roadID = road_id                       # 道路ID
-        self.roadLength = length                    # 道路长度
-        self.roadSpeedLimit = speed_limit           # 速度限制
-        self.roadChannel = channel                  # 车道数目
-        self.roadOrigin = origin                    # 道路起点
-        self.roadDest = dest                        # 道路终点
-        self.roadStatus = self.initialize_road()    # 道路详情
+class road(object):
+    def __init__(self, id, length, speedlimit, channel, origin, dest):
+        self.roadID = id
+        self.roadLength = length
+        self.roadSpeedLimit = speedlimit
+        self.roadChannel = channel
+        self.roadOrigin = origin
+        self.roadDest = dest
+        self.roadStatus = self.initializeRoad()
+        self.first_order_list = []
 
-    def initialize_road(self):
-        """
-        初始化道路详情，全部置-1
-        :return:
-        """
+    # (channel, length), channel递增，length从道路起点到终点递增
+    def initializeRoad(self):
         channel = self.roadChannel
         length = self.roadLength
-        road_detail = np.ones((channel, length)) * -1
-        return road_detail.astype(np.int16)  # 位数也很重要
+        roadDetail = np.ones((channel, length)) * -1
+        return roadDetail.astype(np.int16)  # 位数也很重要
 
-    def update_road(self, car_dict):
-        """
-        更新道路，时间片内第一次调度
-        :param car_dict:
-        :return:
-        """
+    # 更新一遍即可
+    def update_road(self, carDict):
         # 根据优先序列遍历车辆
         for grid in range(self.roadLength - 1, -1, -1):
             for channel in range(self.roadChannel):
                 if self.roadStatus[channel, grid] != -1:
-                    # 车辆对象
-                    car = car_dict[self.roadStatus[channel, grid]]
+                    # 获取车对象
+                    car = carDict[self.roadStatus[channel, grid]]
                     # 标记所有车辆为待处理状态
                     car.change2waiting()
-                    # 调度每一车辆
-                    self.update_car(car, channel, grid, car_dict)
+                    # 调度车辆
+                    self.update_car(car, channel, grid, carDict)
 
-    def update_car(self, car, channel, grid, car_dict):
-        """
-        调度车辆。
-        :param car:
-        :param channel:
-        :param grid:
-        :param car_dict:
-        :return:
-        """
-        # 断言检测 车辆位置
-        car_channel = car.carGPS['channel']
-        car_pos = car.carGPS['pos']
+    # 调度车辆（出路口只标记为等待）
+    def update_car(self, car, channel, grid, carDict):
+        # 1. 获取车辆位置,并进行比对
+        car_channel = car.carLocation['channel']
+        car_pos = car.carLocation['pos']
+        # 断言检测
         assert car_channel == channel
         assert car_pos == grid
 
-        speed = min(car.carSpeed, self.roadSpeedLimit)  # 获取车速
-        len_remain = self.roadLength - (car_pos + 1)    # 道路剩余长度
+        # 2. 获取车速，判断剩余长度，判断车辆行驶类型
+        speed = min(car.carSpeed, self.roadSpeedLimit)
+        lenRemain = self.roadLength - (car_pos + 1)
 
-        if len_remain < speed:  # 准备出路口
-            has_car, front_pos, front_id = self.has_car(car_channel, car_pos+1, self.roadLength)  # 车前方一格到目标占领点
+        if lenRemain < speed:  # 准备出路口
+            has_car, front_pos, front_id = self.has_car(car_channel, car_pos + 1, self.roadLength)
             if has_car:  # 前方有车
-                if car_dict[front_id].is_car_waiting():     # 前车正在等待
-                    car.change2waiting_out()                # 标记为等待出去
-                else:                                       # 前车调度结束
+                if carDict[front_id].iscarWaiting():  # 前车正在等待
+                    car.change2waiting_out()  # 标记为等待出去
+                    # TODO: 此处可以重新进行路径规划，以确定下一阶段道路在哪和出路口方向
+                else:
                     # car.change2end()                        # 标记为调度结束 TODO: 车应该向前走
                     dis = front_pos - car_pos
                     assert dis >= 1  # 要是距离短于1就见鬼了
@@ -77,22 +68,22 @@ class Road(object):
                         # 抹除旧位置
                         self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
                         # 更新到车辆信息
-                        car.mark_new_pos(road_id=self.roadID, channel=car_channel, pos=new_pos,
+                        car.mark_new_pos(roadID=self.roadID, channel=car_channel, pos=new_pos,
                                          this_cross=self.roadOrigin, next_cross=self.roadDest)
                         # 标记车辆为EndState
                         car.change2end()
             else:  # 前方无车
                 # 出路口，前方无车(两种情况：到达终点和准备出路口)
-                if car.is_car_way_home():  # 前方到家，更改状态，抹除该车
+                if car.iscar_wayhome():  # 前方到家，更改状态，抹除该车
                     car.change2success()  # 更改车辆状态
                     self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
                 else:  # 前方出路口，获取转弯方向
                     car.change2waiting_out()  # 标记为等待出去
                     # TODO: 此处可以重新进行路径规划，以确定下一阶段道路在哪和出路口方向
         else:  # 不会出路口
-            has_car, front_pos, front_id = self.has_car(car_channel, car_pos+1, car_pos+speed+1)  # 车前方一格到目标占领点
+            has_car, front_pos, front_id = self.has_car(car_channel, car_pos + 1, car_pos + speed + 1)
             if has_car:  # 前方有车
-                if car_dict[front_id].is_car_waiting():  # 前车正在等待
+                if carDict[front_id].iscarWaiting():  # 前车正在等待
                     car.change2waiting_inside()  # 标记为等待且不出路口
                 else:  # 前车结束调度，需判断还能否前进
                     dis = front_pos - car_pos
@@ -106,7 +97,7 @@ class Road(object):
                         # 抹除旧位置
                         self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
                         # 更新到车辆信息
-                        car.mark_new_pos(road_id=self.roadID, channel=car_channel, pos=new_pos,
+                        car.mark_new_pos(roadID=self.roadID, channel=car_channel, pos=new_pos,
                                          this_cross=self.roadOrigin, next_cross=self.roadDest)
                         # 标记车辆为EndState
                         car.change2end()
@@ -118,7 +109,7 @@ class Road(object):
                 # 抹除旧位置
                 self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
                 # 更新到车辆信息
-                car.mark_new_pos(road_id=self.roadID, channel=car_channel, pos=new_pos, this_cross=self.roadOrigin,
+                car.mark_new_pos(roadID=self.roadID, channel=car_channel, pos=new_pos, this_cross=self.roadOrigin,
                                  next_cross=self.roadDest)
                 # 标记车辆为EndState
                 car.change2end()
@@ -127,38 +118,21 @@ class Road(object):
         """
         判断车道内某段区域是否有车
         :param channel:
-        :param start:   车前方一格
-        :param end:     目标占领点前方一格
-        :return:    bool, front_pos, front_id
+        :param start:
+        :param end:
+        :return:
         """
-        # 车已在目标位置
-        if start == end:
+        if start == end:  # 已在道路最前端
             return False, None, None
-
-        # 方案二 测试发现更高效
-        channel_detail = self.roadStatus[channel, :].flatten()  # 车道数据
+        channeldetail = self.roadStatus[channel, :].flatten()
         for grid in range(start, end, 1):
-            if channel_detail[grid] == -1:
+            if channeldetail[grid] == -1:
                 continue
             else:  # 有车阻挡
-                return True, grid, channel_detail[grid]  # 返回bool, 位置， 车号
+                return True, grid, channeldetail[grid]  # 返回bool, 位置， 车号
 
         # 无车阻挡
         return False, grid, None
-
-        # 方案一 低效能
-        # channel_detail = self.roadStatus[channel, :].flatten()  # 车道数据
-        # channel_slice = channel_detail[start: end]              # 判断区域
-        #
-        # # 前方无车
-        # if np.all(channel_slice == -1):
-        #     return False, None, None
-        #
-        # # 前方有车
-        # front_pos = np.where(channel_slice != -1)[0][0]     # 前车坐标
-        # front_id = channel_slice[front_pos]                 # 前车ID
-        # front_pos += start                                  # 前车在车道位置
-        # return True, front_pos, front_id
 
     def try_on_road(self, carObj):
         """
@@ -169,7 +143,7 @@ class Road(object):
         :return:
         """
         # 对象断言检测
-        assert isinstance(carObj, Car)
+        assert isinstance(carObj, car)
 
         # 1. 找车位, 需要判空
         channel, pos = self.getcheckInPlace()
@@ -189,7 +163,7 @@ class Road(object):
         self.roadStatus[channel, pos] = carObj.carID
 
         # 更新到车辆信息
-        carObj.mark_new_pos(road_id=self.roadID, channel=channel, pos=pos, this_cross=self.roadOrigin,
+        carObj.mark_new_pos(roadID=self.roadID, channel=channel, pos=pos, this_cross=self.roadOrigin,
                             next_cross=self.roadDest)
 
         # 打印一下信息
@@ -235,7 +209,7 @@ class Road(object):
                 if self.roadStatus[channel, grid] != -1:
                     # 获取车对象
                     car = carDict[self.roadStatus[channel, grid]]
-                    if car.is_car_waiting_out():
+                    if car.iscarWaiting_out():
                         return car
 
         # 如果没有则返回NONE
@@ -247,13 +221,13 @@ class Road(object):
         :param carO:
         :return:
         """
-        assert carO.is_car_way_home(self.roadID)  # 直接断言 道路正确
+        assert carO.iscar_wayhome(self.roadID)  # 直接断言 道路正确
         car_id = carO.carID
-        car_channel = carO.carGPS['channel']
-        car_pos = carO.carGPS['pos']
+        car_channel = carO.carLocation['channel']
+        car_pos = carO.carLocation['pos']
         assert self.roadStatus[car_channel, car_pos] is car_id  # 直接断言 车辆所处位置正确
 
-        Car.change2success()  # 更改车辆状态
+        car.change2success()  # 更改车辆状态
         self.roadStatus[car_channel, car_pos] = -1  # 将车辆所在位置置空
         # print(str(carO.carID) + " 到家")
 
@@ -268,7 +242,7 @@ class Road(object):
                 # 获取车对象
                 car = car_dict[self.roadStatus[channel_id, grid]]
                 # 判断车辆状态，END跳过
-                if car.is_car_waiting():
+                if car.iscarWaiting():
                     # 调度车辆
                     self.update_car(car, channel_id, grid, car_dict)
 
@@ -280,7 +254,7 @@ class Road(object):
         """
         assert np.all(self.roadStatus[:, 0] != -1)  # 断言，不应该出现空位存在
         for i in range(self.roadChannel):
-            if car_dict[self.roadStatus[i, 0]].is_car_waiting():
+            if car_dict[self.roadStatus[i, 0]].iscarWaiting():
                 return True
         return False
 
