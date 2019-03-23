@@ -1,6 +1,4 @@
-# coding: utf-8
-import sys
-from collections import defaultdict
+
 from collections import defaultdict
 from heapq import *
 
@@ -34,7 +32,7 @@ def create_topology(roads_dict):
 
 def create_graph(topology_dict):
     """
-    从拓扑数据生成有向图
+    从拓扑数据生成有向图（邻接表）
     :param topology_dict:
     :return:
     """
@@ -136,6 +134,61 @@ def dijsktra(graph, initial, end):
     return path
 
 
+def dijsktra_faster(graph, initial, end):
+    """
+    菲波那契堆实现， 使用Fibonacci Heap将复杂度降到O(E+VlogV)
+    :param graph:
+    :param initial:
+    :param end:
+    :return:
+    """
+    # return dijsktra(graph, initial, end)  # 取消注释进行对比
+
+    result = dijsktra_heapq(graph, initial, end)
+
+    # 需要递归
+    total_length = result[0]  # 整条路线代价
+    result = result[1]
+    route = []
+    while result:
+        route.append(result[0])
+        result = result[1]
+    route.reverse()
+
+    return route
+
+
+def dijsktra_heapq(graph, initial, end):
+    """
+    斐波那契堆实现核心
+    致谢：https://gist.github.com/kachayev/5990802
+    :param graph:
+    :param initial:
+    :param end:
+    :return:
+    """
+    g = graph.heapq
+
+    q, seen, mins = [(0, initial, ())], set(), {initial: 0}
+
+    while q:
+        (cost, v1, path) = heappop(q)
+        if v1 not in seen:
+            seen.add(v1)
+            path = (v1, path)
+            if v1 == end: return (cost, path)
+
+            for c, v2 in g.get(v1, ()):
+                if v2 in seen: continue
+                prev = mins.get(v2, None)
+                next = cost + c
+                if prev is None or next < prev:
+                    mins[v2] = next
+                    heappush(q, (next, v2, path))
+
+    return float("inf")
+
+
 # def unitTest():
 #     graph = Graph()
 #
@@ -162,50 +215,3 @@ def dijsktra(graph, initial, end):
 #
 #     for edge in edges:
 #         graph.add_edge(*edge)
-
-def dijsktra_faster(graph, initial, end):
-    """
-    菲波那契堆实现， 使用Fibonacci Heap将复杂度降到O(E+VlogV)
-    致谢：https://gist.github.com/kachayev/5990802
-    :param graph:
-    :param initial:
-    :param end:
-    :return:
-    """
-    # return dijsktra(graph, initial, end)  # 取消注释进行对比
-
-    result = dijsktra_heapq(graph, initial, end)
-
-    # 需要递归
-    total_length = result[0]  # 整条路线代价
-    result = result[1]
-    route = []
-    while result:
-        route.append(result[0])
-        result = result[1]
-    route.reverse()
-
-    return route
-
-
-def dijsktra_heapq(graph, initial, end):
-    g = graph.heapq
-
-    q, seen, mins = [(0, initial, ())], set(), {initial: 0}
-
-    while q:
-        (cost, v1, path) = heappop(q)
-        if v1 not in seen:
-            seen.add(v1)
-            path = (v1, path)
-            if v1 == end: return (cost, path)
-
-            for c, v2 in g.get(v1, ()):
-                if v2 in seen: continue
-                prev = mins.get(v2, None)
-                next = cost + c
-                if prev is None or next < prev:
-                    mins[v2] = next
-                    heappush(q, (next, v2, path))
-
-    return float("inf")

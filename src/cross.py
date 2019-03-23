@@ -8,8 +8,7 @@ class Cross(object):
     TODO: loops_every_cross时间够用1，不够用2-3
     """
 
-    def __init__(self, cross_id, road1, road2, road3, road4, road_dict,
-                 loops_every_cross=1):
+    def __init__(self, cross_id, road1, road2, road3, road4, road_dict):
         self.crossID = cross_id
         self.roads = [road1, road2, road3, road4]  # 道路分布
         # 本路口道路调度优先级    id表示
@@ -17,7 +16,6 @@ class Cross(object):
         # 本路口道路调度优先级    name表示
         self.roads_prior_name = [self.find_road_name_to_cross(road_dict, r_id) for r_id in self.roads_prior_id]
         self.roads_prior_name = [o for o in self.roads_prior_name if o is not None]  # 去除单向道路
-        self.LOOPS_EVERY_CROSS = loops_every_cross  # 路口调度循环次数
         self.nothing2do = False
 
     def reset_end_flag(self):
@@ -59,7 +57,7 @@ class Cross(object):
                 return key
         return None
 
-    def update_cross(self, road_dict, car_dict):
+    def update_cross(self, road_dict, car_dict, loops_every_cross):
         """
         调度路口多次。
         需要注意，单一路口调度不一定能够完成，需要配合其他路口调度。
@@ -68,7 +66,7 @@ class Cross(object):
         :param car_dict:
         :return:
         """
-        for i in range(self.LOOPS_EVERY_CROSS):
+        for i in range(loops_every_cross):
             # 获取待调度道路和车辆信息
             next_roads = self.get_first_order_info(road_dict, car_dict)
             # 如果没有待调度车辆，则判断该路口完成

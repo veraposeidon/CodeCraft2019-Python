@@ -2,12 +2,12 @@
 
 from dijsktra import create_graph
 import random
+from collections import defaultdict
 
-random.seed(42)
+random.seed(1118)
 
-# 超参数
-# 定义特别大的值则不考虑场上车辆
-CARS_ON_ROAD = 2500   # 大地图2500辆
+# 场上车辆数目
+CARS_ON_ROAD = 2500  # 大地图2500辆
 # CARS_ON_ROAD = 1700
 
 # 一次上路车辆 基数     动态上路
@@ -22,6 +22,9 @@ LOOPS_TO_DEAD_CLOCK = 100
 # 路口占比权重
 ROAD_WEIGHTS_CALC = 3
 
+# 单时间片一个路口循环次数
+CROSS_LOOP_TIMES = 1
+
 
 class TrafficManager:
     """
@@ -34,28 +37,19 @@ class TrafficManager:
         self.carDict = car_dict  # 车辆对象
         self.roadDict = road_dict  # 道路对象
         self.graph = None  # 图模型
+        self.TIME = -1  # 调度系统时间
+        self.TIME_STEP = 1  # 调度系统时间单位
 
-        # 时间系统
-        self.TIME = -1  # 系统时间
-        self.TIME_STEP = 1  # 系统步进时间
-        # 调度结果
-        self.result = dict()
+        self.CARS_ON_ROAD = CARS_ON_ROAD  # 超参数 场上控制车数
+        self.CAR_GET_START_BASE = CAR_GET_START_BASE  # 超参数 上路车辆基数
+        self.LOOPS_TO_UPDATE = LOOPS_TO_UPDATE  # 超参数 更新策略阈值
+        self.LOOPS_TO_DEAD_CLOCK = LOOPS_TO_DEAD_CLOCK  # 超参数 死锁判定阈值
+        self.ROAD_WEIGHTS_CALC = ROAD_WEIGHTS_CALC  # 超参数 道路权重参数
+        self.CROSS_LOOP_TIMES = CROSS_LOOP_TIMES  # 超参数 路口遍历次数
 
-        # 超参数
-        # 定义特别大的值则不考虑场上车辆
-        self.CARS_ON_ROAD = CARS_ON_ROAD
+        self.result = dict()  # 调度结果
 
-        # 一次上路车辆 基数     动态上路
-        self.CAR_GET_START_BASE = CAR_GET_START_BASE
-
-        # 路口全部调度多少次重新更新车辆路线
-        self.LOOPS_TO_UPDATE = LOOPS_TO_UPDATE
-
-        # 路口调度多少次直接判为死锁
-        self.LOOPS_TO_DEAD_CLOCK = LOOPS_TO_DEAD_CLOCK
-
-        # 路口占比权重
-        self.ROAD_WEIGHTS_CALC = ROAD_WEIGHTS_CALC
+        self.launch_order = self.get_start_list()
 
     def get_start_list(self):
         """
@@ -64,7 +58,30 @@ class TrafficManager:
         """
         start_order = []
 
+        # 系统给的顺序
+        random_order = [obj.carID for obj in self.carDict.values()]
+        # return random_order
 
+        # # 上路时间排序
+        timer_order = sorted(self.carDict, key=lambda k: self.carDict[k].carPlanTime)
+
+        # 1. 先获取发车地点分布(crossID : list(carID))
+        area_dist = defaultdict(lambda: [])
+        for item in self.carDict.values():
+            area_dist[item.carFrom].append(item.carID)
+        # 2. 每个地点的车辆按出发时间排序
+        for cross in area_dist:
+            area_dist[cross] = sorted(area_dist[cross], key=lambda k: self.carDict[k].carPlanTime)
+        # 3. 拼接在一起
+        car_num = len(self.carDict)
+        complexorder = []
+        while len(complexorder) < car_num:
+            for cross in area_dist.keys():
+                if area_dist[cross]:
+                    complexorder.append(area_dist[cross][0])
+                    area_dist[cross].pop(0)
+        assert len(complexorder) == car_num
+        return complexorder
 
     def inference(self):
         """
@@ -109,7 +126,8 @@ class TrafficManager:
                 for crossID in crossList:
                     cross = self.crossDict[crossID]
                     if not cross.if_cross_ended():
-                        cross.update_cross(self.roadDict, self.carDict)  # 道路和车辆对象送入
+                        cross.update_cross(self.roadDict, self.carDict,
+                                           loops_every_cross=self.CROSS_LOOP_TIMES)  # 道路和车辆对象送入
 
                 cross_loop_alert += 1
 
@@ -125,7 +143,7 @@ class TrafficManager:
                     graph = self.get_new_map(self.roadDict)
                     # 更新 路上车辆 路线。
                     for carID in carOnRoadList[:int(lenOnRoad / 2)]:  # 大地图用
-                    # for carID in carOnRoadList[:int(lenOnRoad)]:
+                        # for carID in carOnRoadList[:int(lenOnRoad)]:
                         self.carDict[carID].update_new_strategy(graph)
 
             print("TIME: " + str(self.TIME) + ", LOOPs " + str(cross_loop_alert))
@@ -202,13 +220,14 @@ class TrafficManager:
     def update_cars(self):
         """
         遍历车辆，获取状态
+        在发车列表上进行遍历
         :return:
         """
         carAtHomeList = []
         carOnRoadList = []
         carSucceedNum = 0
-        for carid in self.carDict.keys():
-            car = self.carDict[carid]
+        for car_id in self.launch_order:
+            car = self.carDict[car_id]
             if car.is_car_waiting_home():
                 carAtHomeList.append(car.carID)
             elif car.is_car_on_road():
@@ -225,6 +244,7 @@ class TrafficManager:
     def any_car_waiting(self, carOnRoadList):
         """
         判断道路上是否有车等待调度
+        仅判断在路上的车辆即可
         :return:
         """
         for car_id in carOnRoadList:
@@ -232,7 +252,3 @@ class TrafficManager:
                 return True
         return False
 
-        # for key in self.carDict.keys(): # TODO：改进，这里就要遍历所有的车了，应该换成
-        #     if self.carDict[key].is_car_waiting():
-        #         return True
-        # return False
