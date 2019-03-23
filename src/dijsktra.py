@@ -51,6 +51,7 @@ class Graph:
     """
     有向图， 邻接矩阵
     """
+
     def __init__(self):
         """
          self.edges is a dict of all possible next nodes
@@ -82,12 +83,12 @@ class Graph:
             if self.heapq[src][i][1] == end:
                 self.heapq[src][i] = (weight, end)
 
+
 def dijsktra(graph, initial, end):
     """
     dijsktra 最短路径搜索
-    # TODO: 直接实现遍历查找，复杂度为O(n^2)。
-    # TODO: 使用二叉堆实现可以将时间复杂度降低到O((V+E)logV),只要E小于V的平方即可。一般V小于100.E小于300
-    参考： http://benalexkeen.com/implementing-djikstras-shortest-path-algorithm-with-python/
+    直接实现。时间复杂度：O(n²)
+    致谢： http://benalexkeen.com/implementing-djikstras-shortest-path-algorithm-with-python/
     :param graph:
     :param initial:
     :param end:
@@ -123,7 +124,6 @@ def dijsktra(graph, initial, end):
         # for key in next_destinations.keys():
         #     if next_destinations[key][1] < next_destinations[current_node][1]:
         #         current_node = key
-
 
     # Work back through destinations in shortest path
     path = []
@@ -164,12 +164,20 @@ def dijsktra(graph, initial, end):
 #         graph.add_edge(*edge)
 
 def dijsktra_faster(graph, initial, end):
+    """
+    菲波那契堆实现， 使用Fibonacci Heap将复杂度降到O(E+VlogV)
+    致谢：https://gist.github.com/kachayev/5990802
+    :param graph:
+    :param initial:
+    :param end:
+    :return:
+    """
     # return dijsktra(graph, initial, end)  # 取消注释进行对比
 
-    result = dijsktra_heapq(graph,initial, end)
+    result = dijsktra_heapq(graph, initial, end)
 
     # 需要递归
-    total_length = result[0]    # 整条路线代价
+    total_length = result[0]  # 整条路线代价
     result = result[1]
     route = []
     while result:
@@ -178,6 +186,7 @@ def dijsktra_faster(graph, initial, end):
     route.reverse()
 
     return route
+
 
 def dijsktra_heapq(graph, initial, end):
     g = graph.heapq

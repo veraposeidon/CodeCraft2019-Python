@@ -7,7 +7,7 @@ random.seed(42)
 
 # 超参数
 # 定义特别大的值则不考虑场上车辆
-# CARS_ON_ROAD = 2500   # 大地图2500辆
+# CARS_ON_ROAD = 3500   # 大地图2500辆
 CARS_ON_ROAD = 1700
 
 # 一次上路车辆 基数     动态上路
@@ -57,6 +57,15 @@ class TrafficManager:
         # 路口占比权重
         self.ROAD_WEIGHTS_CALC = ROAD_WEIGHTS_CALC
 
+    def get_start_list(self):
+        """
+        初始化上路顺序
+        :return:
+        """
+        start_order = []
+
+
+
     def inference(self):
         """
         推演
@@ -94,7 +103,7 @@ class TrafficManager:
 
             # 3.2 这个While 是刚需，必须要完成道路所有车辆的调度才能进行下一个时间片
             cross_loop_alert = 0
-            while self.any_car_waiting():
+            while self.any_car_waiting(carOnRoadList):
                 # 调度一轮所有路口
                 # TODO: 在此处检查哪些路口调度次数过多。后面更新权重时将加大这些区域的权重
                 for crossID in crossList:
@@ -123,7 +132,7 @@ class TrafficManager:
 
             # 4. 处理准备上路的车辆
             # 4.2 获取车辆列表
-            carAtHomeList, carOnRoadList, succeed = self.update_cars()
+            carAtHomeList, carOnRoadList, carsOnEnd = self.update_cars()
             lenOnRoad = len(carOnRoadList)
             lenAtHome = len(carAtHomeList)
 
@@ -145,8 +154,11 @@ class TrafficManager:
                     if road_name is not None:
                         if self.roadDict[road_name].try_on_road(carObj):
                             count_start += 1
+                            carOnRoadList.append(carObj.carID)
+                            lenOnRoad += 1
+                            lenAtHome -= 1
 
-                print(count_start, lenAtHome, lenOnRoad, succeed)
+                print(count_start, lenAtHome, lenOnRoad, carsOnEnd)
 
         print("Tasks Completed! and Schedule Time is: " + str(self.TIME))
 
@@ -194,7 +206,7 @@ class TrafficManager:
         """
         carAtHomeList = []
         carOnRoadList = []
-        carSucceed = 0
+        carSucceedNum = 0
         for carid in self.carDict.keys():
             car = self.carDict[carid]
             if car.is_car_waiting_home():
@@ -202,20 +214,25 @@ class TrafficManager:
             elif car.is_car_on_road():
                 carOnRoadList.append(car.carID)
             elif car.is_ended():
-                carSucceed += 1
+                carSucceedNum += 1
 
         # carAtHomeList.sort(reverse=False)
         # carOnRoadList.sort(reverse=False)
         # random.shuffle(carAtHomeList)
 
-        return carAtHomeList, carOnRoadList, carSucceed
+        return carAtHomeList, carOnRoadList, carSucceedNum
 
-    def any_car_waiting(self):
+    def any_car_waiting(self, carOnRoadList):
         """
         判断道路上是否有车等待调度
         :return:
         """
-        for key in self.carDict.keys():
-            if self.carDict[key].is_car_waiting():
+        for car_id in carOnRoadList:
+            if self.carDict[car_id].is_car_waiting():
                 return True
         return False
+
+        # for key in self.carDict.keys(): # TODO：改进，这里就要遍历所有的车了，应该换成
+        #     if self.carDict[key].is_car_waiting():
+        #         return True
+        # return False
