@@ -1,5 +1,10 @@
 # coding: utf-8
+import sys
 from collections import defaultdict
+from collections import defaultdict
+from heapq import *
+
+WEIGHT_MAX = 10000
 
 
 def create_topology(roads_dict):
@@ -38,13 +43,13 @@ def create_graph(topology_dict):
     for key, value in topology_dict.items():
         for item in value:
             graph.add_edge(item['start'], item['end'], item['weight'])
-
+    graph.reconstruct_graph_for_heapq()
     return graph
 
 
 class Graph:
     """
-    有向图
+    有向图， 邻接矩阵
     """
     def __init__(self):
         """
@@ -56,15 +61,32 @@ class Graph:
          """
         self.edges = defaultdict(list)
         self.weights = {}
+        self.heapq = defaultdict(list)
 
     def add_edge(self, from_node, to_node, weight):
         self.edges[from_node].append(to_node)
         self.weights[(from_node, to_node)] = weight
 
+    def reconstruct_graph_for_heapq(self):
+        self.heapq = defaultdict(list)
+        for edge_from in self.edges.keys():
+            for edge_to in self.edges[edge_from]:
+                weight = self.weights[(edge_from, edge_to)]
+                self.heapq[edge_from].append((weight, edge_to))
+
+    def update_weight(self, src, end, weight):
+        # 更新weight列表
+        self.weights[(src, end)] = weight
+        # 更新heapq
+        for i in range(len(self.heapq[src])):
+            if self.heapq[src][i][1] == end:
+                self.heapq[src][i] = (weight, end)
 
 def dijsktra(graph, initial, end):
     """
     dijsktra 最短路径搜索
+    # TODO: 直接实现遍历查找，复杂度为O(n^2)。
+    # TODO: 使用二叉堆实现可以将时间复杂度降低到O((V+E)logV),只要E小于V的平方即可。一般V小于100.E小于300
     参考： http://benalexkeen.com/implementing-djikstras-shortest-path-algorithm-with-python/
     :param graph:
     :param initial:
@@ -95,6 +117,8 @@ def dijsktra(graph, initial, end):
             return "Route Not Possible"
         # next node is the destination with the lowest weight
         current_node = min(next_destinations, key=lambda k: next_destinations[k][1])
+
+        # # 遍历找最小可能会稍快。
         # current_node = list(next_destinations.keys())[0]
         # for key in next_destinations.keys():
         #     if next_destinations[key][1] < next_destinations[current_node][1]:
@@ -138,3 +162,41 @@ def dijsktra(graph, initial, end):
 #
 #     for edge in edges:
 #         graph.add_edge(*edge)
+
+def dijsktra_faster(graph, initial, end):
+    # return dijsktra(graph, initial, end)  # 取消注释进行对比
+
+    result = dijsktra_heapq(graph,initial, end)
+
+    # 需要递归
+    total_length = result[0]    # 整条路线代价
+    result = result[1]
+    route = []
+    while result:
+        route.append(result[0])
+        result = result[1]
+    route.reverse()
+
+    return route
+
+def dijsktra_heapq(graph, initial, end):
+    g = graph.heapq
+
+    q, seen, mins = [(0, initial, ())], set(), {initial: 0}
+
+    while q:
+        (cost, v1, path) = heappop(q)
+        if v1 not in seen:
+            seen.add(v1)
+            path = (v1, path)
+            if v1 == end: return (cost, path)
+
+            for c, v2 in g.get(v1, ()):
+                if v2 in seen: continue
+                prev = mins.get(v2, None)
+                next = cost + c
+                if prev is None or next < prev:
+                    mins[v2] = next
+                    heappush(q, (next, v2, path))
+
+    return float("inf")

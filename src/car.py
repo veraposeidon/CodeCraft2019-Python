@@ -1,7 +1,7 @@
 # coding:utf-8
 
 from enum import Enum, unique
-from dijsktra import dijsktra, Graph
+from dijsktra import dijsktra, Graph, dijsktra_faster
 
 
 @unique
@@ -91,7 +91,8 @@ class Car:
         # 1. 起点，终点 和 路径
         start = self.carFrom
         end = self.carTo
-        self.strategy = dijsktra(graph, start, end)
+        # self.strategy = dijsktra(graph, start, end)
+        self.strategy = dijsktra_faster(graph, start, end)
 
         now_cross = self.strategy[0]
         next_cross = self.strategy[1]
@@ -211,15 +212,16 @@ class Car:
             return
         next_cross = self.carGPS['next']
         this_cross = self.carGPS['now']
-        self.strategy = dijsktra(graph, next_cross, self.carTo)  # 下一路口到家的路
+        self.strategy = dijsktra_faster(graph, next_cross, self.carTo)  # 下一路口到家的路
 
         # 判断走没有所在的路，要是有，就重新更新下Graph,重新找最优路径
         if this_cross == self.strategy[1]:
             # 深拷贝效率低，原有权重替换即可
             origin_weight = graph.weights[(next_cross,this_cross)]
             # 更换权重
-            graph.weights[(next_cross, this_cross)] = 1000
+            graph.update_weight(next_cross, this_cross, 1000)
             # 重新规划路线
-            self.strategy = dijsktra(graph, next_cross, self.carTo)
+            self.strategy = dijsktra_faster(graph, next_cross, self.carTo)
             # 替换会原有权重
-            graph.weights[(next_cross, this_cross)] = origin_weight
+            graph.update_weight(next_cross, this_cross, origin_weight)
+            # graph.weights[(next_cross, this_cross)] = origin_weight
