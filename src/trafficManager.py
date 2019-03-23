@@ -7,11 +7,11 @@ random.seed(42)
 
 # 超参数
 # 定义特别大的值则不考虑场上车辆
-# CARS_ON_ROAD = 3500   # 大地图2500辆
-CARS_ON_ROAD = 1700
+CARS_ON_ROAD = 2500   # 大地图2500辆
+# CARS_ON_ROAD = 1700
 
 # 一次上路车辆 基数     动态上路
-CAR_GET_START_BASE = 200
+CAR_GET_START_BASE = 300
 
 # 路口全部调度多少次重新更新车辆路线
 LOOPS_TO_UPDATE = 4
