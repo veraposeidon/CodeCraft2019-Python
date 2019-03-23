@@ -226,14 +226,15 @@ class TrafficManager:
         carAtHomeList = []
         carOnRoadList = []
         carSucceedNum = 0
-        for car_id in self.launch_order:
+        for car_id in self.launch_order[:]:
             car = self.carDict[car_id]
             if car.is_car_waiting_home():
                 carAtHomeList.append(car.carID)
             elif car.is_car_on_road():
                 carOnRoadList.append(car.carID)
             elif car.is_ended():
-                carSucceedNum += 1
+                carSucceedNum += 1  # 本轮到家车辆数目
+                self.launch_order.remove(car_id)    # 有remove动作，需要在遍历时加上[:]
 
         # carAtHomeList.sort(reverse=False)
         # carOnRoadList.sort(reverse=False)
