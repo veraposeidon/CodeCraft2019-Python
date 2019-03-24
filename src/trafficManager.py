@@ -7,8 +7,8 @@ from collections import defaultdict
 random.seed(1118)
 
 # 场上车辆数目
-CARS_ON_ROAD = 2500  # 大地图2500辆
-# CARS_ON_ROAD = 1700
+# CARS_ON_ROAD = 2500  # 大地图2500辆
+CARS_ON_ROAD = 1700
 
 # 一次上路车辆 基数     动态上路
 CAR_GET_START_BASE = 300
@@ -59,7 +59,7 @@ class TrafficManager:
         start_order = []
 
         # 系统给的顺序
-        random_order = [obj.carID for obj in self.carDict.values()]
+        # random_order = [obj.carID for obj in self.carDict.values()]
         # return random_order
 
         # # 上路时间排序
