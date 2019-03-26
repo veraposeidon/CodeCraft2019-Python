@@ -7,11 +7,11 @@ from collections import defaultdict
 random.seed(1118)
 
 # 场上车辆数目
-# CARS_ON_ROAD = 2500  # 大地图2500辆
+# CARS_ON_ROAD = 1000  # 大地图2500辆
 CARS_ON_ROAD = 1700
 
 # 一次上路车辆 基数     动态上路
-CAR_GET_START_BASE = 300
+CAR_GET_START_BASE = 200
 
 # 路口全部调度多少次重新更新车辆路线
 LOOPS_TO_UPDATE = 4
@@ -22,7 +22,7 @@ LOOPS_TO_DEAD_CLOCK = 100
 # 路口占比权重
 ROAD_WEIGHTS_CALC = 3
 
-# 单时间片一个路口循环次数
+# 一个路口连续循环几次才转下个路口调度
 CROSS_LOOP_TIMES = 1
 
 

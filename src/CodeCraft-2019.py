@@ -64,6 +64,7 @@ def main():
     # 删除变量，释放内存
     del cars_dict
 
+
     # 2.3 生成道路对象
     roads = {}
     for item in roads_dict.keys():
@@ -99,6 +100,7 @@ def main():
         crosses[cross_.crossID] = cross_
     # 删除变量，释放内存
     del crosses_dict
+
 
     # 将世界地图和调度任务送入调度中心，由调度中心进行演算，得到安排结果
     manager = TrafficManager(topology_dict=topologyDict,

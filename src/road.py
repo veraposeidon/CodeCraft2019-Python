@@ -84,12 +84,13 @@ class Road(object):
                         self.move_car_to(car_channel, car_pos, new_pos, car_obj)  # 移动车辆
             # 前方无车
             else:
-                # 前方到家
-                if car_obj.is_car_way_home():
-                    self.move_car_home(car_obj)  # 到家
-                # 前方出路口
-                else:
-                    car_obj.change2waiting_out()  # 标记为等待调度出路口
+                # # 前方到家
+                # if car_obj.is_car_way_home():
+                #     self.move_car_home(car_obj)  # 到家
+                # # 前方出路口
+                # else:
+                #     car_obj.change2waiting_out()  # 标记为等待调度出路口
+                car_obj.change2waiting_out()  # 标记为等待调度出路口
         # 不准备出路口
         else:
             has_car, front_pos, front_id = self.has_car(car_channel, car_pos + 1, car_pos + speed + 1)
@@ -159,7 +160,7 @@ class Road(object):
         # 对象断言检测
         assert isinstance(car_obj, Car)
         # 1. 找车位
-        channel, pos = self.get_checkin_place()
+        channel, pos = self.get_checkin_place_start()
         if channel is None:
             return False  # 上路失败
 
@@ -170,20 +171,21 @@ class Road(object):
 
         return True  # 上路成功
 
-    def get_checkin_place(self):
+    def get_checkin_place_start(self):
         """
-        # 获取进入道路时的空位置
+        # 启动时 获取进入道路时的空位置
         # 要是没有返回None
         # 必须要找小编号车道优先原则
+        # 判断车辆分步即可
         :return:
         """
-        # 道路为空
+        # 道路为空：第一车道最前方
         if np.all(self.roadStatus == -1):
             return 0, self.roadLength - 1  # 注意下标
 
         # 道路不为空
         for channel in range(self.roadChannel):
-            # channel 满(判断最后一辆车就好)
+            # channel 满（必须要最后一格有车且停止态才能到下一条道路遍历）
             if self.roadStatus[channel, 0] != -1:
                 continue
             # channel 不满
@@ -196,6 +198,40 @@ class Road(object):
                     return channel, pos - 1  # 返回空位置，而不是有阻挡的位置
         # 全满
         return None, None
+
+    def get_checkin_place_cross(self, car_dict):
+        """
+        # 获取进入道路时的空位置
+        # 要是没有返回None
+        # 必须要找小编号车道优先原则
+        # 而且必须要第一通道最后一车为终止态才能从第二道路开始搜索，不然不满足小道优先原则。
+        :return:
+        """
+        # 道路为空：第一车道最前方
+        if np.all(self.roadStatus == -1):
+            return 0, self.roadLength - 1  # 注意下标
+
+        # 道路不为空
+        for channel in range(self.roadChannel):
+            # channel 满（必须要最后一格有车且停止态才能到下一条道路遍历）
+            if self.roadStatus[channel, 0] != -1:   # 最后一排有车
+                # continue
+                # 最后一排调度结束就判断下一个车道
+                if car_dict[self.roadStatus[channel, 0]].is_car_end_state():
+                    continue
+                else:   # 没有调度结束就返回None让其进行等待
+                    return None, None
+            # channel 不满
+            for pos in range(self.roadLength):
+                if self.roadStatus[channel, pos] == -1:
+                    if pos == self.roadLength - 1:  # 到头，那就是最大长度
+                        return channel, pos
+                    continue
+                else:
+                    return channel, pos - 1  # 返回空位置，而不是有阻挡的位置
+        # 全满
+        return None, None
+
 
     def get_first_order_car(self, car_dict):
         """
@@ -257,7 +293,8 @@ class Road(object):
         函数至此，已假定最后一排存在三辆车，此条件用以用于断言
         :return:
         """
-        assert np.all(self.roadStatus[:, 0] != -1)  # 断言，不应该出现空位存在
+        # assert np.all(self.roadStatus[:, 0] != -1)  # 断言，不应该出现空位存在
+
         for i in range(self.roadChannel):
             if car_dict[self.roadStatus[i, 0]].is_car_waiting():
                 return True
@@ -265,7 +302,7 @@ class Road(object):
 
     def get_road_weight(self, dist_k=1.0):
         """
-        车越多越堵，数值越大
+        车越多越堵，数值越大g
         简单版本： 只统计个数
         复杂版本： 从后到前，权重加大
         也可以超参

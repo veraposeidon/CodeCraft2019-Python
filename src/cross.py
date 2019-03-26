@@ -97,14 +97,22 @@ class Cross(object):
                             break  # 跳出while 调度下一道路
 
                     # 调度车辆
-                    car_o = next_roads[roadID]['carO']
-                    this_road = road_dict[next_roads[roadID]['road_name']]
-                    next_road = road_dict[next_roads[roadID]['next_road_name']]
-                    self.move_car_across(car_o, this_road, next_road, car_dict)
 
-                    # # 调度之后除去道路第一优先序车辆记录
-                    # # 放在这里有些许浪费应该放在车辆调度结束终止态时。
-                    # this_road.first_order_car = None
+                    # 回家
+                    if next_roads[roadID]["next_road_name"] == "HOME":
+                        car_o = next_roads[roadID]['carO']
+                        this_road = road_dict[next_roads[roadID]['road_name']]
+                        this_road.move_car_home(car_o)
+                        # 更新车道后方信息
+                        this_road.update_channel(car_o.carGPS['channel'], car_dict)
+                        # 除去道路第一优先序车辆记录
+                        this_road.first_order_car = None
+                    # 过路口
+                    else:
+                        car_o = next_roads[roadID]['carO']
+                        this_road = road_dict[next_roads[roadID]['road_name']]
+                        next_road = road_dict[next_roads[roadID]['next_road_name']]
+                        self.move_car_across(car_o, this_road, next_road, car_dict)
 
                     # 只更新该道路的优先序车辆
                     road_id, first_info = self.get_road_first_order_info(next_roads[roadID]['road_name'], road_dict,
@@ -202,13 +210,28 @@ class Cross(object):
             # 当前道路有待出路口车辆
             else:
                 if car_obj.next_road_name(self.crossID) is None:  # 是否下一站到家
-                    # 车辆回家
-                    road_dict[road_name].move_car_home(car_obj)
-                    # 更新车道后方信息
-                    road_dict[road_name].update_channel(car_obj.carGPS['channel'], car_dict)
-                    # 除去道路第一优先序车辆记录
-                    road_dict[road_name].first_order_car = None
-                    continue  # 继续更新本条道路的第一优先级
+                    # 新规定，回家不能立马回，要先妨碍别人
+                    # 获取道路ID
+                    road_now_id = road_dict[road_name].roadID
+                    next_road_name = "HOME"
+                    r_index = self.roads.index(road_now_id)
+                    r_next_idx = (r_index+2) % 4
+                    road_next_id = self.roads[r_next_idx]
+                    assert road_now_id != road_next_id  # 聊胜于无  # 出现相同是因为计划路线出现了掉头，这个是不允许的。要在车辆更新路线时进行否定
+                    direction = "D"
+                    first_order_info = {'carO': car_obj,
+                                        'road_name': road_name,
+                                        'next_road_id': road_next_id,
+                                        'next_road_name': next_road_name,
+                                        'direction': direction}
+
+                    # # 车辆回家
+                    # road_dict[road_name].move_car_home(car_obj)
+                    # # 更新车道后方信息
+                    # road_dict[road_name].update_channel(car_obj.carGPS['channel'], car_dict)
+                    # # 除去道路第一优先序车辆记录
+                    # road_dict[road_name].first_order_car = None
+                    # continue  # 继续更新本条道路的第一优先级
                 else:
                     # 不回家车辆的下一条路名称
                     next_road_name = car_obj.next_road_name(self.crossID)
@@ -225,7 +248,7 @@ class Cross(object):
                                         'next_road_id': road_next_id,
                                         'next_road_name': next_road_name,
                                         'direction': direction}
-                    return road_now_id, first_order_info
+                return road_now_id, first_order_info
 
     @staticmethod
     def move_car_across(car_obj, this_road, next_road, car_dict):
@@ -241,7 +264,7 @@ class Cross(object):
         :return:
         """
         # 1. 找到待进入车道和位置：
-        next_channel, next_pos = next_road.get_checkin_place()
+        next_channel, next_pos = next_road.get_checkin_place_cross(car_dict)
 
         # 前方道路堵住
         # 前方道路堵住需要探讨（前方道路的车是终结态还是等待态，只要最后有车等待，那就可以等待，如果最后一排的车全为终结，那就终结）
@@ -276,6 +299,7 @@ class Cross(object):
         remain_dis = (this_road.roadLength - 1) - car_pos  # 上端剩余距离
         speed = min(car_obj.carSpeed, next_road.roadSpeedLimit)
         real_dis = max(speed - remain_dis, 0)
+
         if real_dis == 0:  # 表示不支持转入下一道路，现在调度到本车道终点处，不变channel
             new_pos = this_road.roadLength - 1  # 注意下标
 

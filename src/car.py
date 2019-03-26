@@ -167,6 +167,13 @@ class Car:
         """
         return self.carStatus is CarStatus.WAITING_HOME
 
+    def is_car_end_state(self):
+        """
+        判断车辆是否调度结束
+        :return:
+        """
+        return self.carStatus is CarStatus.ON_ROAD_STATE_END
+
     def is_car_way_home(self):
         """
         判断车辆前方是否终点即可

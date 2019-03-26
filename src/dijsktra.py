@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 from heapq import *
 
@@ -90,8 +89,9 @@ def dijsktra(graph, initial, end):
     :param graph:
     :param initial:
     :param end:
-    :return:    shortest paths is a dict of nodes whose value is a tuple of (previous node, weight)
+    :return:
     """
+    # shortest paths is a dict of nodes whose value is a tuple of (previous node, weight)
     shortest_paths = {initial: (None, 0)}
     current_node = initial
     visited = set()
