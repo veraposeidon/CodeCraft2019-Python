@@ -8,19 +8,19 @@ random.seed(1118)
 
 # 场上车辆数目
 # CARS_ON_ROAD = 1000  # 大地图2500辆
-CARS_ON_ROAD = 1500
+CARS_ON_ROAD = 2500
 
 # 一次上路车辆 基数     动态上路
-CAR_GET_START_BASE = 200
+CAR_GET_START_BASE = 250
 
 # 路口全部调度多少次重新更新车辆路线
-LOOPS_TO_UPDATE = 4
+LOOPS_TO_UPDATE = 3
 
 # 路口调度多少次直接判为死锁
-LOOPS_TO_DEAD_CLOCK = 100
+LOOPS_TO_DEAD_CLOCK = 50
 
 # 路口占比权重
-ROAD_WEIGHTS_CALC = 3
+ROAD_WEIGHTS_CALC = 4
 
 # 一个路口连续循环几次才转下个路口调度
 CROSS_LOOP_TIMES = 1
@@ -78,6 +78,10 @@ class TrafficManager:
         # 2. 每个地点的车辆按出发时间排序
         for cross in area_dist:
             area_dist[cross] = sorted(area_dist[cross], key=lambda k: self.carDict[k].carPlanTime)
+        # # 3. 按每个地点的车辆的形式距离
+        # for cross in area_dist:
+        #     area_dist[cross] = sorted(area_dist[cross], key=lambda k: self.carDict[k].carTo - self.carDict[k].carFrom)
+        #     area_dist[cross].reverse()
         # 3. 拼接在一起
         car_num = len(self.carDict)
         complexorder = []
@@ -88,6 +92,11 @@ class TrafficManager:
                     area_dist[cross].pop(0)
         assert len(complexorder) == car_num
         return complexorder
+
+        # # 按照行驶距离来聚类
+        # dis_order = sorted(self.carDict, key=lambda k: abs(self.carDict[k].carTo - self.carDict[k].carFrom))
+        # dis_order.reverse()
+        # return dis_order
 
     def inference(self):
         """
@@ -163,11 +172,15 @@ class TrafficManager:
             # TODO: 动态更改地图车辆容量
             # TODO: 动态上路数目
             if lenOnRoad < self.CARS_ON_ROAD:
+                # # r如果太堵就不发车了
+                # if cross_loop_alert >= 7:
+                #     continue
+
                 # # 这段话有奇效
-                if len(carAtHomeList) < self.CARS_ON_ROAD / 3:
+                if len(carAtHomeList) < self.CARS_ON_ROAD / 2:
                     how_many = len(carAtHomeList)
                 else:
-                    how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 0.1))
+                    how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert+0.01))
             #     how_many = self.CARS_ON_ROAD - lenOnRoad
                 # how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 0.1))
 
