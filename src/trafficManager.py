@@ -8,7 +8,7 @@ random.seed(1118)
 
 # 场上车辆数目
 # CARS_ON_ROAD = 1000  # 大地图2500辆
-CARS_ON_ROAD = 1700
+CARS_ON_ROAD = 1500
 
 # 一次上路车辆 基数     动态上路
 CAR_GET_START_BASE = 200
@@ -56,14 +56,20 @@ class TrafficManager:
         初始化上路顺序
         :return:
         """
-        start_order = []
 
         # 系统给的顺序
         # random_order = [obj.carID for obj in self.carDict.values()]
         # return random_order
 
-        # # 上路时间排序
-        timer_order = sorted(self.carDict, key=lambda k: self.carDict[k].carPlanTime)
+        # # 随机顺序
+        # import random
+        # shuffle_order = random_order
+        # random.shuffle(shuffle_order)
+        # return shuffle_order
+
+        # # # 上路时间排序
+        # timer_order = sorted(self.carDict, key=lambda k: self.carDict[k].carPlanTime)
+        # return timer_order
 
         # 1. 先获取发车地点分布(crossID : list(carID))
         area_dist = defaultdict(lambda: [])
@@ -157,16 +163,20 @@ class TrafficManager:
             # TODO: 动态更改地图车辆容量
             # TODO: 动态上路数目
             if lenOnRoad < self.CARS_ON_ROAD:
-                # if len(carAtHomeList) < self.CARS_ON_ROAD:
-                #     how_many = len(carAtHomeList)
-                # else:
-                #     how_many = self.CARS_ON_ROAD - lenOnRoad
-                how_many = self.CARS_ON_ROAD - lenOnRoad
-
-                # how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 1.0))
+                # # 这段话有奇效
+                if len(carAtHomeList) < self.CARS_ON_ROAD / 3:
+                    how_many = len(carAtHomeList)
+                else:
+                    how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 0.1))
+            #     how_many = self.CARS_ON_ROAD - lenOnRoad
+                # how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 0.1))
 
                 count_start = 0
-                for car_id in carAtHomeList[:how_many]:
+                car_start_list = carAtHomeList[:how_many].copy()
+                sorted(car_start_list)  # 小号优先
+
+                # for car_id in carAtHomeList[:how_many]:
+                for car_id in car_start_list:
                     carObj = self.carDict[car_id]
                     road_name = carObj.try_start(graph, self.TIME)
                     if road_name is not None:
