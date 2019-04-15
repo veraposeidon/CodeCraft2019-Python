@@ -8,20 +8,15 @@ random.seed(1118)
 
 # 场上车辆数目
 # CARS_ON_ROAD = 1000  # 大地图2500辆
-CARS_ON_ROAD = 2500
-
+CARS_ON_ROAD = 1800
 # 一次上路车辆 基数     动态上路
 CAR_GET_START_BASE = 250
-
 # 路口全部调度多少次重新更新车辆路线
 LOOPS_TO_UPDATE = 3
-
 # 路口调度多少次直接判为死锁
 LOOPS_TO_DEAD_CLOCK = 50
-
 # 路口占比权重
-ROAD_WEIGHTS_CALC = 4
-
+ROAD_WEIGHTS_CALC = 3
 # 一个路口连续循环几次才转下个路口调度
 CROSS_LOOP_TIMES = 1
 
@@ -148,6 +143,7 @@ class TrafficManager:
 
                 if cross_loop_alert > self.LOOPS_TO_DEAD_CLOCK:
                     print("路口循环调度次数太多进行警告")
+                    # TODO 取消断言，换成返回bool，重新设置参数运行
                     assert False
 
                 if cross_loop_alert >= self.LOOPS_TO_UPDATE:
@@ -172,16 +168,20 @@ class TrafficManager:
             # TODO: 动态更改地图车辆容量
             # TODO: 动态上路数目
             if lenOnRoad < self.CARS_ON_ROAD:
-                # # r如果太堵就不发车了
+                # # 如果太堵就不发车了
                 # if cross_loop_alert >= 7:
                 #     continue
 
-                # # 这段话有奇效
-                if len(carAtHomeList) < self.CARS_ON_ROAD / 2:
+                # # # 这段话有奇效
+                # # if cross_loop_alert == 0:
+                # #     how_many = CAR_GET_START_BASE
+                if len(carAtHomeList) < self.CARS_ON_ROAD / 3:
+                    # self.CARS_ON_ROAD += len(carAtHomeList)
                     how_many = len(carAtHomeList)
                 else:
-                    how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert+0.01))
-            #     how_many = self.CARS_ON_ROAD - lenOnRoad
+                    how_many = self.CARS_ON_ROAD - lenOnRoad
+                    # how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert+0.01))
+                # how_many = self.CARS_ON_ROAD - lenOnRoad
                 # how_many = int(self.CAR_GET_START_BASE / (cross_loop_alert + 0.1))
 
                 count_start = 0
@@ -202,6 +202,7 @@ class TrafficManager:
                 print(count_start, lenAtHome, lenOnRoad, carsOnEnd)
 
         print("Tasks Completed! and Schedule Time is: " + str(self.TIME))
+        return True # 返回正确
 
     def get_result(self):
         """
